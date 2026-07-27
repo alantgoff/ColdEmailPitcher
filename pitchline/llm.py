@@ -495,11 +495,31 @@ class HeuristicClient:
             fragment = _salient_fragment(best.get("raw_text") or "", profile_tokens)
             if not fragment:
                 raise LLMError("evidence snippet has no quotable content for a hook")
-            lead = {
-                "thesis": "Your stated thesis",
-                "recent_activity": "Your recent note",
-            }.get(area, "Your public writing")
-            hook = f'{lead} — "{fragment}" — is why I am writing to you rather than mass-mailing.'
+            # Only quote someone if the snippet is actually THEIR words. A directory entry
+            # or a research summary is a third party describing the fund, and framing it as
+            # "your stated thesis — '...'" attributes a sentence they never wrote. In a
+            # system whose whole claim is verifiable sourcing, that framing is the lie even
+            # when the citation resolves.
+            first_party = best.get("source") in {"fund_site", "public_writing", "sec_form_d"}
+            if first_party:
+                lead = {
+                    "thesis": "Your stated thesis",
+                    "recent_activity": "Your recent note",
+                }.get(area, "Your public writing")
+                hook = (
+                    f'{lead} — "{fragment}" — is why I am writing to you rather than '
+                    "mass-mailing."
+                )
+            else:
+                # Third-party descriptions are written ABOUT the fund ("Chicago venture firm
+                # investing in restaurant and beverage companies"), so splicing them after
+                # "you focus on" produces nonsense. Pull the object of the investing verb,
+                # which is the part that is true of them in the second person.
+                focus = _focus_phrase(fragment)
+                hook = (
+                    f"You back {focus}, which is why I am writing to you rather than "
+                    "mass-mailing a list."
+                )
 
         return HookProposal(
             hook_text=hook[:300],
@@ -602,8 +622,38 @@ def _salient_fragment(text: str, profile_tokens: set[str], *, max_words: int = 1
         if best.lower().startswith(opener):
             words = best.split()[len(opener.split()):]
             break
-    fragment = " ".join(words[:max_words]).strip().strip(",;:. ")
-    return fragment
+    fragment = " ".join(words[:max_words]).strip()
+    # A quote cut mid-clause reads as careless and can change the meaning. If the sentence
+    # was truncated, fall back to the last clean clause boundary rather than shipping
+    # "...companies across North America, founded by".
+    if len(words) > max_words:
+        for boundary in (",", ";", ":"):
+            if boundary in fragment:
+                fragment = fragment.rsplit(boundary, 1)[0]
+                break
+    fragment = fragment.strip().strip(",;:. ")
+    # Never end on a word that promises more.
+    dangling = {"and", "or", "with", "for", "by", "of", "the", "a", "an", "in", "to", "that",
+                "founded", "including", "across", "from", "at", "on"}
+    parts = fragment.split()
+    while parts and parts[-1].lower().strip(",.;:") in dangling:
+        parts.pop()
+    return " ".join(parts)
+
+
+_FOCUS_RE = re.compile(
+    r"(?i)\b(?:investing in|invests in|invest in|backs|backing|focused on|focus on|"
+    r"partners with|supports)\s+(?P<object>.+)$"
+)
+
+
+def _focus_phrase(fragment: str) -> str:
+    """The part of a third-party description that is true of the fund in second person."""
+    match = _FOCUS_RE.search(fragment)
+    phrase = match.group("object") if match else fragment
+    # Drop a leading article so "You back the restaurant sector" reads naturally.
+    phrase = re.sub(r"(?i)^(the|a|an)\s+", "", phrase).strip().strip(",;:. ")
+    return phrase
 
 
 def _bucket(value: float, thresholds: tuple[float, ...]) -> int:

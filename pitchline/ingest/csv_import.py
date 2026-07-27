@@ -109,7 +109,14 @@ def parse_role(raw: str | None) -> InvestorRole:
     checks: tuple[tuple[tuple[str, ...], InvestorRole], ...] = (
         (("managing partner", "managing director", "manager partner", "md,"), InvestorRole.MANAGING_PARTNER),
         (("general partner", "gp", "g.p."), InvestorRole.GENERAL_PARTNER),
-        (("founding partner", "founder & partner", "founder and partner", "co-founder", "cofounder", "founding gp"), InvestorRole.FOUNDING_PARTNER),
+        # "Founder" of a *fund* is the most senior investing role there is — Don Thompson at
+        # Cleveland Avenue, Kirsten Green at Forerunner. Treating it as unresolvable
+        # quarantined eight of the best contacts on a real list. The opposite risk — an
+        # operating-company founder leaking in from a messy export — is caught downstream by
+        # the fit score (no fund thesis) and by per-email human approval (R6.1).
+        (("founding partner", "founder & partner", "founder and partner", "co-founder",
+          "cofounder", "founding gp", "founder", "chief executive", "ceo"),
+         InvestorRole.FOUNDING_PARTNER),
         (("venture partner",), InvestorRole.VENTURE_PARTNER),
         (("principal",), InvestorRole.PRINCIPAL),
         (("partner",), InvestorRole.PARTNER),

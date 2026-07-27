@@ -212,6 +212,7 @@ def evidence_payload(
     return [
         {
             "id": row.id,
+            "source": row.source.value,
             "area": row.area.value,
             "kind": row.kind.value,
             "title": row.title,

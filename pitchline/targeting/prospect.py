@@ -79,7 +79,7 @@ def firm_evidence(session: Session, firm_id: int, *, limit: int = 12) -> list[di
     )
     return [
         {
-            "id": r.id, "area": r.area.value, "kind": r.kind.value, "title": r.title,
+            "id": r.id, "source": r.source.value, "area": r.area.value, "kind": r.kind.value, "title": r.title,
             "url": r.url, "raw_text": r.raw_text[:1200], "entities": r.entities,
             "published_at": (ensure_utc(r.published_at).isoformat() if r.published_at else None),
             "fetched_at": (ensure_utc(r.fetched_at).isoformat() if r.fetched_at else None),

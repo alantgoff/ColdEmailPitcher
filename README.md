@@ -56,6 +56,19 @@ worth thirty minutes of homework; a target is a named person you can write to. P
 writes `FirmProspect` rows and never `Target` rows, so a ranked list of firms can never
 drift into a send queue.
 
+### Auditing the list
+
+```bash
+python scripts/audit_investors.py --write-csv   # -> data/investors_audited.csv
+pitchline ingest data/investors_audited.csv
+```
+
+The universe was assembled to a target count, which is the exact pressure that lets weak
+records in. The audit grades every record on what the round actually needs — a fund that
+can write a seed cheque, into a consumer food business — and drops 79 that cannot. Seven
+verified defects are recorded in `data/investor_audit_2026.py` with their sources, the
+worst being a contact seven years out of date on the one record that had produced a draft.
+
 ### Shareable review console
 
 `streamlit run pitchline/app.py` is the operating surface — it writes approvals back to the

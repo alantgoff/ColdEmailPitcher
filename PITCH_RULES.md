@@ -143,9 +143,10 @@ not promoted to targets. Non-partner roles (associate, analyst, platform, chief 
 are outside the campaign universe.
 
 Angels are included: the rule's purpose is to reach someone who can decide, and an angel
-investing their own money is that person. Titles that do not resolve to an investing role —
-"CEO", "Founder", "Operator" — stay in quarantine with their reason recorded, because a
-person's operating title says nothing about whether they invest.
+investing their own money is that person. So is the *founder of a fund* — "Founder" and
+"CEO" at an investment firm name the most senior investing role there is, not an
+unresolvable title. Titles that describe a non-investing function — analyst, platform,
+chief of staff, marketing — stay in quarantine with their reason recorded.
 
 ```params
 require_named_individual = true

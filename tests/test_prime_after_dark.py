@@ -299,6 +299,24 @@ def test_a_real_competitor_holding_is_still_detected(pad_profile):
     assert ids == [2]
 
 
+def test_the_founder_of_a_fund_is_partner_level(session):
+    """R1.4 — "Founder" at an investment firm is the most senior investing role there is.
+
+    Treating it as unresolvable quarantined eight of the strongest contacts on the real
+    list, including the founders of Cleveland Avenue, Forerunner and Boulder Food Group.
+    """
+    from pitchline.ingest import parse_role
+    from pitchline.rules import is_partner_level
+
+    for title in ("Founder", "Co-Founder", "CEO", "Chief Executive Officer", "Founding Partner"):
+        role = parse_role(title)
+        assert is_partner_level(role.value), f"{title!r} resolved to {role.value}"
+
+    # Non-investing functions still stay out.
+    for title in ("Head of Platform", "Chief of Staff", "Analyst", "Senior Associate"):
+        assert not is_partner_level(parse_role(title).value), title
+
+
 def test_angels_are_inside_the_campaign_universe(session):
     """R1.4 — angels co-invest in seed rounds and decide for themselves."""
     from pitchline.ingest import parse_role
