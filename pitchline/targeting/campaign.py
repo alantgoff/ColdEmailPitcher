@@ -24,7 +24,7 @@ from pitchline.models import (
     TargetStatus,
 )
 from pitchline.research.store import research_coverage
-from pitchline.rules import MAX_CAMPAIGN_TARGETS, WARN_CAMPAIGN_TARGETS
+from pitchline.rules import MAX_CAMPAIGN_TARGETS, MAX_TARGETS_PER_FIRM, WARN_CAMPAIGN_TARGETS
 from pitchline.targeting.score import ScoringSkipped, score_investor
 
 
@@ -43,6 +43,7 @@ class CampaignReport:
     suppressed_list: int = 0
     skipped_no_research: int = 0
     capped_out: int = 0
+    held_firm_duplicates: int = 0
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -51,7 +52,7 @@ class CampaignReport:
             f"{self.considered} considered -> {self.qualified} qualified "
             f"({self.dropped_low_fit} low fit, {self.suppressed_conflict} conflicts, "
             f"{self.suppressed_list} suppressed, {self.skipped_no_research} lacking research, "
-            f"{self.capped_out} over cap)"
+            f"{self.held_firm_duplicates} held as firm duplicates, {self.capped_out} over cap)"
         )
 
 
@@ -122,6 +123,8 @@ def build_campaign(
         elif target.status is TargetStatus.DROPPED_LOW_FIT:
             report.dropped_low_fit += 1
 
+    report.held_firm_duplicates = _one_per_firm(session, campaign)
+    report.qualified -= report.held_firm_duplicates
     report.capped_out = _apply_cap(session, campaign, cap)
     report.qualified -= report.capped_out
 
@@ -165,6 +168,47 @@ def _mark_suppressed(
     target.suppressed_reason = reason
     session.add(target)
     session.flush()
+
+
+def _one_per_firm(session: Session, campaign: Campaign) -> int:
+    """R1.6 — keep the strongest contact per firm, hold the rest.
+
+    Three partners at one fund receiving three variants of the same email on the same
+    morning disproves, to all three at once, the "I am writing to you specifically" claim
+    that every one of those emails makes.
+    """
+    qualified = list(
+        session.exec(
+            select(Target).where(
+                Target.campaign_id == campaign.id, Target.status == TargetStatus.QUALIFIED
+            )
+        )
+    )
+    by_firm: dict[int, list[Target]] = {}
+    for target in qualified:
+        investor = session.get(Investor, target.investor_id)
+        if investor is None or investor.firm_id is None:
+            continue  # an angel has no firm to collide with
+        by_firm.setdefault(investor.firm_id, []).append(target)
+
+    held = 0
+    for firm_id, targets in by_firm.items():
+        if len(targets) <= MAX_TARGETS_PER_FIRM:
+            continue
+        # Colleagues at one fund often score identically — the fit signal is the firm's.
+        # Break the tie on target id so the same partner wins on every re-run rather than
+        # rotating with row order, which would send the firm a second first-touch.
+        targets.sort(key=lambda t: (-t.composite_score, t.id or 0))
+        for target in targets[MAX_TARGETS_PER_FIRM:]:
+            target.status = TargetStatus.HELD_FIRM_DUPLICATE
+            target.suppressed_reason = (
+                f"R1.6 — a higher-scoring colleague at firm {firm_id} is the active contact"
+            )
+            session.add(target)
+            held += 1
+    if held:
+        session.flush()
+    return held
 
 
 def _apply_cap(session: Session, campaign: Campaign, cap: int) -> int:

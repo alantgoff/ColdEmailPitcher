@@ -218,6 +218,8 @@ class TargetStatus(str, Enum):
     DROPPED_LOW_FIT = "dropped_low_fit"
     SUPPRESSED_CONFLICT = "suppressed_conflict"
     SUPPRESSED_LIST = "suppressed_list"
+    #: R1.6 — a colleague at the same firm is the active contact. Held, not dropped.
+    HELD_FIRM_DUPLICATE = "held_firm_duplicate"
     IN_SEQUENCE = "in_sequence"
     REPLIED = "replied"
     CLOSED = "closed"

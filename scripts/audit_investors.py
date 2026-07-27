@@ -24,6 +24,10 @@ from data.investor_audit_2026 import (  # noqa: E402
     NON_US_HINTS, OFF_THESIS_SECTORS, RELATED_ENTITIES, REMOVE, VERIFIED_FINDINGS,
 )
 from data.investor_universe_2026 import ALL_RECORDS, SEGMENT_LABELS  # noqa: E402
+from data.investor_universe_supplement import ALL_SUPPLEMENT, SUPPLEMENT_CONTACTS  # noqa: E402
+
+#: Every contact re-verified or newly sourced against a public page.
+VERIFIED_CONTACTS = {**CONFIRMED_CONTACTS, **SUPPLEMENT_CONTACTS}
 
 SEED_TOKENS = ("pre-seed", "seed", "early stage")
 
@@ -87,6 +91,10 @@ def apply_audit(records: list[dict]) -> list[dict]:
                 record[key] = value
         out.append(record)
     out.extend(dict(a) for a in ADDITIONS)
+    # Second research pass. Partner additions duplicate a firm deliberately: one record per
+    # named person, which is what R1.4 wants. The "contact one" flag below stops that from
+    # turning into three emails to the same fund.
+    out.extend(dict(a) for a in ALL_SUPPLEMENT)
     return out
 
 
@@ -125,10 +133,14 @@ def grade(record: dict) -> tuple[str, list[str]]:
         tier = "B"
     if not record.get("portfolio") and not record.get("recent_activity"):
         reasons.append("thin evidence — no portfolio or recent activity captured")
-    if record.get("partner_name") in CONFIRMED_CONTACTS:
+    if record.get("partner_name") in VERIFIED_CONTACTS:
         reasons.append("contact verified during the audit")
     elif record.get("partner_name"):
         reasons.append("contact NOT re-verified — check before sending")
+    if record.get("_siblings", 0) > 1:
+        reasons.append(
+            f"{record['_siblings']} partners known at this firm — contact one, not all"
+        )
     if record["firm"] in RELATED_ENTITIES:
         reasons.append(f"shares a principal with {RELATED_ENTITIES[record['firm']]} — contact one")
 
@@ -153,6 +165,9 @@ def main() -> None:
         print(f"  action  : {finding['action']}")
 
     audited = apply_audit(ALL_RECORDS)
+    counts_by_firm = Counter(r["firm"] for r in audited if r.get("partner_name"))
+    for record in audited:
+        record["_siblings"] = counts_by_firm.get(record["firm"], 0)
     graded = [(r, *grade(r)) for r in audited]
 
     print("\n" + "=" * 78)
@@ -181,11 +196,11 @@ def main() -> None:
         print(f"  {count:>4}  {SEGMENT_LABELS.get(segment, segment)}")
 
     named = [r for r, t, _ in graded if t in ("A", "B") and r.get("partner_name")]
-    verified = [r for r in named if r["partner_name"] in CONFIRMED_CONTACTS]
+    verified = [r for r in named if r["partner_name"] in VERIFIED_CONTACTS]
     print(f"\nNamed contacts in Tier A/B: {len(named)}  "
           f"({len(verified)} re-verified during this audit)")
     for record in named:
-        mark = "verified  " if record["partner_name"] in CONFIRMED_CONTACTS else "UNCHECKED "
+        mark = "verified  " if record["partner_name"] in VERIFIED_CONTACTS else "UNCHECKED "
         print(f"  {mark}{record['partner_name']:<22} {record['firm'] or '(angel)'}")
 
     # The real ceiling on this list is not fit, it is evidence: R1.3 refuses to write to

@@ -200,6 +200,57 @@ def test_the_campaign_cap_cannot_be_raised(session, campaign, profile, client):
         )
 
 
+def test_only_one_partner_per_firm_stays_live(session, campaign, profile, client):
+    """R1.6 — colleagues at one fund compare notes; only the strongest stays live."""
+    senior = make_investor(session, name="Ana Okafor")
+    give_full_research(session, senior)
+    for name in ("Bo Lindqvist", "Cara Mensah"):
+        # make_investor mints a firm per call; repoint each colleague at the shared one.
+        colleague = make_investor(session, name=name, firm_name=f"Placeholder {name}")
+        colleague.firm_id = senior.firm_id
+        session.add(colleague)
+        session.flush()
+        give_full_research(session, colleague)
+
+    report = build_campaign(session, campaign=campaign, profile=profile)
+
+    assert report.qualified == 1
+    assert report.held_firm_duplicates == 2
+
+    live = session.exec(
+        select(Target).where(
+            Target.campaign_id == campaign.id, Target.status == TargetStatus.QUALIFIED
+        )
+    ).all()
+    held = session.exec(
+        select(Target).where(
+            Target.campaign_id == campaign.id,
+            Target.status == TargetStatus.HELD_FIRM_DUPLICATE,
+        )
+    ).all()
+    assert len(live) == 1 and len(held) == 2
+    # Held, not dropped: if the live contact bounces the firm is still reachable.
+    assert all("R1.6" in (t.suppressed_reason or "") for t in held)
+    assert min(t.composite_score for t in live) >= max(t.composite_score for t in held)
+
+
+def test_an_angel_without_a_firm_is_never_held_as_a_duplicate(
+    session, campaign, profile, client
+):
+    """R1.6 collides on firms; two unaffiliated angels are two separate relationships."""
+    for name in ("Dev Raman", "Elin Sato"):
+        angel = make_investor(session, name=name, firm_name=f"Placeholder {name}")
+        angel.firm_id = None
+        session.add(angel)
+        session.flush()
+        give_full_research(session, angel)
+
+    report = build_campaign(session, campaign=campaign, profile=profile)
+
+    assert report.held_firm_duplicates == 0
+    assert report.qualified == 2
+
+
 def test_suppressed_investors_never_enter_the_campaign(session, campaign, profile, client):
     investor = make_investor(session)
     give_full_research(session, investor)

@@ -182,6 +182,26 @@ model_may_override = false
 enforce_at_dispatch = true
 ```
 
+### R1.6 — One live contact per firm
+
+- **Severity:** hard
+- **Enforced by:** targeting.campaign_cap
+- **Source:** "By making each cold pitch investor specific increases the odds further by a lot." (Three partners at one fund receiving three variants of the same email on the same day is the opposite of investor-specific.)
+
+A campaign holds at most one active target per firm. Resolving several partners at a fund
+is good research, and it is exactly how a list becomes a blast: every email claims to be
+written to that person specifically, and three arriving at one fund on one morning proves
+the claim false to all three recipients at once.
+
+The highest-scoring partner is kept; the others are held, not discarded, so a later touch
+can switch contact if the first does not reply.
+
+```params
+max_targets_per_firm = 1
+keep_highest_scoring = true
+hold_rather_than_discard = true
+```
+
 ---
 
 ## §2 — Message construction

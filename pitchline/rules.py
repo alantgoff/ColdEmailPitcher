@@ -506,6 +506,11 @@ REQUIRED_PARAMS: Final[Mapping[str, Mapping[str, str]]] = {
         "min_sends_for_rate_significance": _INT,
     },
     "R1.1": {"max_campaign_targets": _INT, "warn_campaign_targets": _INT},
+    "R1.6": {
+        "max_targets_per_firm": _INT,
+        "keep_highest_scoring": _BOOL,
+        "hold_rather_than_discard": _BOOL,
+    },
     "R1.2": {
         "dimensions": _STRS,
         "dimension_weights": "list[float]",
@@ -740,6 +745,7 @@ MIN_SENDS_FOR_RATE_SIGNIFICANCE: Final[int] = RULES.int_("R0.1", "min_sends_for_
 # §1 — universe and list construction --------------------------------------------------
 MAX_CAMPAIGN_TARGETS: Final[int] = RULES.int_("R1.1", "max_campaign_targets")
 WARN_CAMPAIGN_TARGETS: Final[int] = RULES.int_("R1.1", "warn_campaign_targets")
+MAX_TARGETS_PER_FIRM: Final[int] = RULES.int_("R1.6", "max_targets_per_firm")
 
 FIT_DIMENSIONS: Final[tuple[str, ...]] = RULES.str_list("R1.2", "dimensions")
 # RULE-CHECK (R1.2): the source names the signals but publishes no weights. Sector and
