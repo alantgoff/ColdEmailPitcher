@@ -16,7 +16,7 @@ from datetime import datetime
 from sqlmodel import Session
 
 from pitchline import suppression
-from pitchline.models import Draft, DraftStatus, Firm, Investor, Mailbox, Target
+from pitchline.models import Draft, DraftStatus, EmailConfidence, Firm, Investor, Mailbox, Target
 from pitchline.rules import (
     APPROVAL_CANNOT_BYPASS_SUPPRESSION,
     DEFER_ON_UNKNOWN_TIMEZONE,
@@ -65,6 +65,14 @@ class InvalidSenderError(SendRefused):
 
 class MissingRecipientError(SendRefused):
     """No usable recipient address."""
+
+
+class UnverifiedRecipientError(SendRefused):
+    """The address has never been verified, so sending it risks a bounce.
+
+    Bounces are not a per-message cost — they degrade the sending domain for every other
+    recipient on the list. Guessing is therefore refused by default rather than attempted.
+    """
 
 
 def preflight(
@@ -124,7 +132,18 @@ def preflight(
             "unless a named human overrides with a written reason."
         )
 
-    # 6. Sending identity (R3.2).
+    # 6. Address verification. Deliberately AFTER suppression and conflict: "never contact
+    #    this person" and "this fund holds a competitor" are permanent refusals, and they
+    #    should be reported as such rather than masked by a fixable data-quality problem.
+    if not dry_run and investor.email_confidence is not EmailConfidence.VERIFIED:
+        raise UnverifiedRecipientError(
+            f"{investor.email} is {investor.email_confidence.value}, not verified. A bounce "
+            "degrades the sending domain for every other recipient on the list, so an "
+            "unverified address is refused rather than guessed. Verify it, then set "
+            "email_confidence=verified."
+        )
+
+    # 7. Sending identity (R3.2).
     if mailbox is not None:
         if not mailbox.active:
             raise InvalidSenderError(f"mailbox {mailbox.email} is inactive")
@@ -134,7 +153,7 @@ def preflight(
                 "professional sending domain"
             )
 
-    # 7. Send window (R4.5).
+    # 8. Send window (R4.5).
     if enforce_window:
         tz = resolve_timezone(investor.timezone)
         if tz is None:

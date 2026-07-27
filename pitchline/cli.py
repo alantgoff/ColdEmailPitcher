@@ -250,6 +250,63 @@ def target(
         _echo(f"  error: {error}")
 
 
+@app.command()
+def prospect(
+    campaign: str = typer.Option(..., "--campaign", "-c"),
+    limit: Optional[int] = typer.Option(None, help="Score at most N firms."),
+    show: int = typer.Option(25, help="How many to print."),
+) -> None:
+    """Rank *firms* by fit, before any contact has been resolved.
+
+    Answers "which funds are worth the homework?" — not "who do I email?". A firm here is
+    a prospect, never a target.
+    """
+    from pitchline.targeting import ranked_prospects, score_all_firms
+
+    with session_scope() as session:
+        profile = _profile(session)
+        camp = _campaign(session, campaign, create_for=profile)
+        report = score_all_firms(session, campaign=camp, profile=profile, limit=limit)
+        rows = ranked_prospects(session, camp.id, limit=show)  # type: ignore[arg-type]
+        _echo(report.summary())
+        _echo("")
+        for prospect_row, firm in rows:
+            flag = "contact ready" if prospect_row.resolved_contacts else "needs partner"
+            _echo(
+                f"{prospect_row.composite_score:>5.2f}  {firm.name[:36]:<36} "
+                f"{(firm.hq_city or '-')[:14]:<14} {flag}"
+            )
+            _echo(f"         {prospect_row.rationales.get('sector', '')[:96]}")
+    for error in report.errors[:5]:
+        _echo(f"  error: {error}")
+
+
+@app.command()
+def contacts(
+    limit: int = typer.Option(20, help="How many gaps to print."),
+) -> None:
+    """Show what stands between the researched list and a sendable campaign."""
+    from pitchline.models import EmailConfidence, Firm as FirmModel
+
+    with session_scope() as session:
+        firms = list(session.exec(select(FirmModel)))
+        investors = list(session.exec(select(Investor)))
+        named = [i for i in investors if i.full_name]
+        verified = [i for i in named if i.email_confidence is EmailConfidence.VERIFIED]
+        with_email = [i for i in named if i.email]
+
+        _echo(f"firms researched          {len(firms)}")
+        _echo(f"named individuals         {len(named)}")
+        _echo(f"with any email            {len(with_email)}")
+        _echo(f"with a VERIFIED email     {len(verified)}   <- the only ones a live send accepts")
+        _echo("")
+        _echo("Highest-value gaps (resolve a partner, then verify the address):")
+        firm_ids_with_contact = {i.firm_id for i in named}
+        gaps = [f for f in firms if f.id not in firm_ids_with_contact][:limit]
+        for firm in gaps:
+            _echo(f"  {firm.name[:44]:<44} {(firm.website or firm.domain or '')[:36]}")
+
+
 @app.command("targets")
 def list_targets(
     campaign: str = typer.Option(..., "--campaign", "-c"),

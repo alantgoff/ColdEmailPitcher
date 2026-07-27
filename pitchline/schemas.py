@@ -13,6 +13,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from pitchline.rules import (
+    FIT_DIMENSION_WEIGHTS,
     NOVELTY_SCALE_MAX,
     NOVELTY_SCALE_MIN,
     SCORE_SCALE_MAX,
@@ -67,8 +68,13 @@ class FitScoreResult(_Strict):
 
     @property
     def composite(self) -> float:
-        scores = [d.score for d in self.dimensions.values()]
-        return round(sum(scores) / len(scores), 3)
+        """R1.2 — weighted mean. Weights come from the rules file, not from here."""
+        dims = self.dimensions
+        total = sum(FIT_DIMENSION_WEIGHTS.get(name, 0.0) for name in dims)
+        if not total:  # pragma: no cover - rules file would have to be empty
+            return round(sum(d.score for d in dims.values()) / len(dims), 3)
+        weighted = sum(d.score * FIT_DIMENSION_WEIGHTS.get(name, 0.0) for name, d in dims.items())
+        return round(weighted / total, 3)
 
     @property
     def evidence_ids(self) -> list[int]:

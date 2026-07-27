@@ -307,3 +307,115 @@ def test_angels_are_inside_the_campaign_universe(session):
     assert parse_role("Angel Investor") is InvestorRole.ANGEL
     assert is_partner_level("angel") is True
     assert is_partner_level("associate") is False
+
+
+# --------------------------------------------------------------------------------------
+# Contact quality — the gate that protects the sending domain
+# --------------------------------------------------------------------------------------
+
+
+def test_an_unverified_address_is_refused_on_a_live_send(
+    session, pad_profile, food_investor, client, mailbox
+):
+    """A guessed address bounces, and bounces cost every *other* recipient on the list."""
+    from dataclasses import dataclass, field
+    from email.message import EmailMessage
+
+    from pitchline import approval
+    from pitchline.models import EmailConfidence
+    from pitchline.send import Sender, UnverifiedRecipientError
+    from pitchline.send.transport import Delivery
+    from tests.conftest import a_valid_send_time
+
+    @dataclass
+    class FakeLive:
+        name: str = "fake_live"
+        live: bool = True
+        outbox: list = field(default_factory=list)
+
+        def deliver(self, message: EmailMessage) -> Delivery:
+            self.outbox.append(message)
+            return Delivery(provider_message_id="x")
+
+    campaign = Campaign(name="pad-seed", startup_profile_id=pad_profile.id)
+    session.add(campaign)
+    session.flush()
+    target = make_target(session, campaign, food_investor)
+    plan_sequence(session, target)
+    draft = compose_first_touch(session, target=target, profile=pad_profile)
+    approval.approve(session, draft, approved_by="Josh")
+
+    food_investor.email_confidence = EmailConfidence.UNKNOWN
+    session.add(food_investor)
+    session.flush()
+
+    sender = Sender(session, transport=FakeLive(), dry_run=False)
+    with pytest.raises(UnverifiedRecipientError):
+        sender.send(draft, mailbox=mailbox, now=a_valid_send_time())
+    assert sender.transport.outbox == []
+
+    # Verified — the same draft goes out.
+    food_investor.email_confidence = EmailConfidence.VERIFIED
+    session.add(food_investor)
+    session.flush()
+    sender.send(draft, mailbox=mailbox, now=a_valid_send_time())
+    assert len(sender.transport.outbox) == 1
+
+
+def test_a_suppression_outranks_an_unverified_address(
+    session, pad_profile, food_investor, client, mailbox
+):
+    """"Never contact this person" is a stronger fact than "we have not checked the address"."""
+    from pitchline import approval, suppression
+    from pitchline.models import EmailConfidence, SuppressionReason
+    from pitchline.send import Sender, SuppressedRecipientError
+    from pitchline.send.transport import DryRunTransport
+    from tests.conftest import a_valid_send_time
+
+    campaign = Campaign(name="pad-seed", startup_profile_id=pad_profile.id)
+    session.add(campaign)
+    session.flush()
+    target = make_target(session, campaign, food_investor)
+    plan_sequence(session, target)
+    draft = compose_first_touch(session, target=target, profile=pad_profile)
+    approval.approve(session, draft, approved_by="Josh")
+
+    food_investor.email_confidence = EmailConfidence.UNKNOWN
+    session.add(food_investor)
+    suppression.suppress_investor(session, food_investor, reason=SuppressionReason.PASS_REPLY)
+
+    transport = DryRunTransport()
+    transport.live = True  # a live-capable transport, so preflight runs the live path
+
+    with pytest.raises(SuppressedRecipientError):
+        Sender(session, transport=transport, dry_run=False).send(
+            draft, mailbox=mailbox, now=a_valid_send_time()
+        )
+
+
+def test_firm_prospects_are_never_mistaken_for_targets(session, pad_profile, client):
+    """A ranked list of funds is not a campaign list of people."""
+    from pitchline.models import Firm, FirmProspect, Target
+    from pitchline.targeting import ranked_prospects, score_all_firms
+    from pitchline.textutil import normalize_firm_name
+
+    campaign = Campaign(name="pad-seed", startup_profile_id=pad_profile.id)
+    session.add(campaign)
+    firm = Firm(
+        name="Branded Hospitality Ventures",
+        name_normalized=normalize_firm_name("Branded Hospitality Ventures"),
+        sectors=["hospitality", "food and beverage", "restaurant tech"],
+        stages=["seed", "series_a"],
+        thesis_summary="Invests in hospitality and foodservice technology and food and beverage concepts.",
+    )
+    session.add(firm)
+    session.flush()
+
+    report = score_all_firms(session, campaign=campaign, profile=pad_profile)
+
+    assert report.scored == 1
+    assert session.exec(select(FirmProspect)).first() is not None
+    # Crucially: no Target row was created, so nothing downstream can send to a firm.
+    assert list(session.exec(select(Target))) == []
+    prospects = ranked_prospects(session, campaign.id)
+    assert prospects and prospects[0][1].name == "Branded Hospitality Ventures"

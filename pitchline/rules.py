@@ -291,6 +291,14 @@ class RuleBook:
             raise RuleParamError(f"{rule_id}.{key}: expected list of str")
         return value  # type: ignore[return-value]
 
+    def float_list(self, rule_id: str, key: str) -> tuple[float, ...]:
+        value = self._param(rule_id, key)
+        if not isinstance(value, tuple) or not all(
+            isinstance(v, (int, float)) and not isinstance(v, bool) for v in value
+        ):
+            raise RuleParamError(f"{rule_id}.{key}: expected list of float")
+        return tuple(float(v) for v in value)
+
     def int_list(self, rule_id: str, key: str) -> tuple[int, ...]:
         value = self._param(rule_id, key)
         if not isinstance(value, tuple) or not all(
@@ -486,6 +494,7 @@ def load_rulebook(path: Path | str | None = None) -> RuleBook:
 # --------------------------------------------------------------------------------------
 
 _INT, _FLOAT, _BOOL, _STR, _STRS, _INTS = "int", "float", "bool", "str", "list[str]", "list[int]"
+_FLOATS = "list[float]"
 
 #: Every parameter the codebase reads, with its expected type. Import fails if the rules
 #: file drops one — swapping in a revised PITCH_RULES.md can never silently disable a gate.
@@ -499,6 +508,7 @@ REQUIRED_PARAMS: Final[Mapping[str, Mapping[str, str]]] = {
     "R1.1": {"max_campaign_targets": _INT, "warn_campaign_targets": _INT},
     "R1.2": {
         "dimensions": _STRS,
+        "dimension_weights": "list[float]",
         "score_scale_min": _INT,
         "score_scale_max": _INT,
         "min_composite_score": _FLOAT,
@@ -685,6 +695,7 @@ _CHECKERS = {
     _STR: "str_",
     _STRS: "str_list",
     _INTS: "int_list",
+    _FLOATS: "float_list",
 }
 
 
@@ -731,6 +742,12 @@ MAX_CAMPAIGN_TARGETS: Final[int] = RULES.int_("R1.1", "max_campaign_targets")
 WARN_CAMPAIGN_TARGETS: Final[int] = RULES.int_("R1.1", "warn_campaign_targets")
 
 FIT_DIMENSIONS: Final[tuple[str, ...]] = RULES.str_list("R1.2", "dimensions")
+# RULE-CHECK (R1.2): the source names the signals but publishes no weights. Sector and
+# stage carry most of the weight; geography least, so a specialist in the wrong city still
+# outranks a generalist in the right one.
+FIT_DIMENSION_WEIGHTS: Final[dict[str, float]] = dict(
+    zip(FIT_DIMENSIONS, RULES.float_list("R1.2", "dimension_weights"))
+)
 SCORE_SCALE_MIN: Final[int] = RULES.int_("R1.2", "score_scale_min")
 SCORE_SCALE_MAX: Final[int] = RULES.int_("R1.2", "score_scale_max")
 MIN_COMPOSITE_FIT_SCORE: Final[float] = RULES.float_("R1.2", "min_composite_score")

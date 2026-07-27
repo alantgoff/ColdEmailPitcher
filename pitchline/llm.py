@@ -376,12 +376,18 @@ class HeuristicClient:
                 ]
             )
         )
-        coverage = tu.overlap_ratio(
-            {t for t in tu.tokens(" ".join(profile.get("sectors", []) + profile.get("keywords", []))) if len(t) > 3},
-            investor_tokens,
-        )
-        sector_score = _bucket(coverage, (0.05, 0.2, 0.35, 0.5, 0.7))
-        matched = sorted({t for t in profile_tokens if t in investor_tokens and len(t) > 3})[:4]
+        # Score on the NUMBER of distinct sector concepts that match, not on the fraction of
+        # the startup's vocabulary that matches. A ratio with the profile's token count in
+        # the denominator punishes a founder for describing their space thoroughly: add ten
+        # more accurate keywords and every investor's score falls. Counting matches is
+        # stable against the length of either list.
+        sector_tokens = {
+            t for t in tu.tokens(" ".join(profile.get("sectors", []) + profile.get("keywords", [])))
+            if len(t) > 3
+        }
+        matched_all = sorted(t for t in sector_tokens if t in investor_tokens)
+        sector_score = _bucket(float(len(matched_all)), (1.0, 2.0, 3.0, 5.0, 7.0))
+        matched = matched_all[:4]
         sector_why = (
             f"thesis and evidence mention {', '.join(matched)}" if matched
             else "no sector overlap found in stated thesis or evidence"

@@ -100,11 +100,31 @@ def evidence_for(
     areas: Sequence[EvidenceArea] | None = None,
     fresh_only: bool = False,
     limit: int | None = None,
+    include_firm: bool = True,
 ) -> list[Evidence]:
+    """Evidence about this investor, including their fund's.
+
+    R1.3 asks for "an investor's portfolio, fund thesis, and recent activity" — two of
+    those three are properties of the *firm*, not the person. Counting only
+    person-attached evidence would mean a partner at a fund whose thesis and portfolio are
+    fully documented still reads as unresearched, which is not what the rule says.
+    """
     statement = select(Evidence).where(Evidence.investor_id == investor_id)
-    if areas:
-        statement = statement.where(Evidence.area.in_(list(areas)))  # type: ignore[attr-defined]
     rows = list(session.exec(statement))
+    if include_firm:
+        investor = session.get(Investor, investor_id)
+        if investor is not None and investor.firm_id is not None:
+            firm_rows = session.exec(
+                select(Evidence).where(
+                    Evidence.firm_id == investor.firm_id,
+                    Evidence.investor_id == None,  # noqa: E711 — SQL IS NULL
+                )
+            ).all()
+            seen = {r.content_hash for r in rows}
+            rows.extend(r for r in firm_rows if r.content_hash not in seen)
+    if areas:
+        wanted = set(areas)
+        rows = [r for r in rows if r.area in wanted]
     if fresh_only:
         rows = [row for row in rows if within_staleness_limit(row)]
     rows.sort(key=_sort_key, reverse=True)

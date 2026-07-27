@@ -395,16 +395,32 @@
 <div class="banner">
   <span aria-hidden="true">⚠</span>
   <p style="margin:0">
-    <b>This list is synthetic.</b> The 570 investors here were generated to exercise the
-    pipeline end to end — none of them are real people and nothing has been sent. The emails,
-    the evidence and the scoring are real output from your own copy. Swap in a genuine
-    investor export and the same review runs against real targets.
+    <b>These funds are real; the contact details are not yet.</b> Every fund below was found
+    through public research in July 2026. No email addresses were invented — a guessed
+    address bounces, and bounces cost the sending domain for every other recipient. Nothing
+    has been sent, and a live send refuses any address that has not been verified.
   </p>
 </div>
 
 <div class="strip" id="strip"></div>
 
-<section class="preflight">
+<section class="preflight" id="gap-section">
+  <h2>What stands between this list and a sent email</h2>
+  <p>The list below is real and researched. The contacts are not — and the software will
+     not let you pretend otherwise.</p>
+  <div class="blockers" id="gap-blockers"></div>
+</section>
+
+<section class="preflight" id="prospects-section">
+  <h2>Ranked funds <span id="prospect-count" class="eyebrow"></span></h2>
+  <p>Every fund below was found by public research and scored on the same six dimensions
+     the engine uses for people. This ranks where to spend the next thirty minutes; it is
+     not a send list.</p>
+  <div class="filters" id="segment-filters" role="group" aria-label="Filter funds"></div>
+  <div class="scroll" style="margin-top:.8rem"><table id="prospect-table"></table></div>
+</section>
+
+<section class="preflight" id="blockers-section">
   <h2>Before anything sends</h2>
   <p>Five things gate a live send. The first two will block the software; the rest will only
      cost you replies.</p>
@@ -470,6 +486,14 @@
 </main>
 
 <div class="lower">
+  <section>
+    <h2>Who still needs homework</h2>
+    <p>R1.3 refuses to write to someone you have not researched: a fund thesis, its
+       portfolio, and something they did recently. These are the named partners found so
+       far and what each one is missing.</p>
+    <div class="scroll"><table id="research-gap"></table></div>
+  </section>
+
   <section>
     <h2>Refused before it reached this queue</h2>
     <p>Funds holding a direct competitor are suppressed by default. An override needs a named
@@ -553,15 +577,17 @@
   }
 
   function renderStrip() {
-    var f = D.funnel, c = counts();
+    var c = counts();
+    var g = D.contact_gap || {};
+    var ps = D.prospects || [];
     var cells = [
-      { k: "investors scored", v: f.targets_scored },
-      { k: "qualified", v: f.targets_qualified },
-      { k: "dropped · thesis", v: f.targets_dropped_low_fit },
-      { k: "suppressed · conflict", v: f.targets_suppressed_conflict },
-      { k: "drafts in queue", v: D.drafts.length, accent: true },
-      { k: "approved by you", v: c.approve, accent: true },
-      { k: "still undecided", v: c.undecided }
+      { k: "funds researched", v: g.firms || 0, accent: true },
+      { k: "above the fit floor", v: ps.filter(function (p) { return !p.conflict && p.composite >= 3; }).length },
+      { k: "suppressed · conflict", v: ps.filter(function (p) { return p.conflict; }).length },
+      { k: "named partners", v: g.named || 0 },
+      { k: "verified emails", v: g.verified || 0, accent: true },
+      { k: "drafts cleared", v: D.drafts.length },
+      { k: "approved by you", v: c.approve }
     ];
     document.getElementById("strip").innerHTML = cells.map(function (s) {
       return '<div class="stat' + (s.accent ? " accent" : "") + '">' +
@@ -709,6 +735,94 @@
 
   /* ---------------- lower tables ---------------- */
 
+  var segmentFilter = "all";
+
+  function renderGap() {
+    var g = D.contact_gap || {};
+    var drafts = D.drafts.length;
+    var items = [
+      ["", "No verified email addresses yet",
+       "Public research reached " + (g.firms || 0) + " funds but not their inboxes. An " +
+       "invented address bounces, and bounces cost the sending domain for every other " +
+       "recipient — so a live send refuses anything that is not verified. This is the one " +
+       "job that has to happen before any of this reaches an investor."],
+      ["", (g.named || 0) + " named partners out of " + (g.firms || 0) + " funds",
+       "A fund is not a person. Until a named partner is resolved, a fund can be ranked " +
+       "but never written to."],
+      ["warn", drafts + " draft" + (drafts === 1 ? "" : "s") + " cleared every gate",
+       "Only partners with a documented thesis, portfolio and recent activity can be " +
+       "drafted for. The rest are waiting on research, not on the software."],
+      ["warn", "Postal address and deck cover still need fixing",
+       "CAN-SPAM needs a real address in the footer, and the deck cover still reads " +
+       "\u201cFriends & Family Round\u201d while you raise an institutional seed."]
+    ];
+    document.getElementById("gap-blockers").innerHTML = items.map(function (i) {
+      return '<div class="blocker' + (i[0] ? " " + i[0] : "") + '"><div class="bar"></div>' +
+        '<div class="cell"><b>' + esc(i[1]) + "</b><p>" + esc(i[2]) + "</p></div></div>";
+    }).join("");
+  }
+
+  function segments() {
+    var seen = {};
+    (D.prospects || []).forEach(function (p) {
+      (p.sectors || []).forEach(function (x) { seen[x] = 1; });
+    });
+    return Object.keys(seen);
+  }
+
+  function visibleProspects() {
+    var rows = (D.prospects || []).slice();
+    if (segmentFilter === "conflict") return rows.filter(function (p) { return p.conflict; });
+    if (segmentFilter === "contactable") return rows.filter(function (p) { return p.contacts > 0; });
+    if (segmentFilter === "strong") {
+      return rows.filter(function (p) { return !p.conflict && p.composite >= 3.0; });
+    }
+    return rows.filter(function (p) { return !p.conflict; });
+  }
+
+  function renderProspects() {
+    var rows = visibleProspects();
+    document.getElementById("prospect-count").textContent =
+      rows.length + " of " + (D.prospects || []).length;
+
+    var filters = [
+      ["all", "All"], ["strong", "Above the fit floor"],
+      ["contactable", "Contact resolved"], ["conflict", "Conflicted"]
+    ];
+    document.getElementById("segment-filters").innerHTML = filters.map(function (f) {
+      return '<button type="button" data-s="' + f[0] + '" aria-pressed="' +
+        (segmentFilter === f[0]) + '">' + f[1] + "</button>";
+    }).join("");
+
+    document.getElementById("prospect-table").innerHTML =
+      "<thead><tr><th>Fit</th><th>Fund</th><th>Where</th><th>Why</th><th>Contact</th></tr></thead><tbody>" +
+      rows.map(function (p) {
+        var why = p.conflict
+          ? "holds " + esc((p.conflict_companies || []).join(", "))
+          : esc(p.rationales && p.rationales.sector ? p.rationales.sector : "");
+        return "<tr>" +
+          '<td class="num" style="color:var(--brass);white-space:nowrap">' + p.composite.toFixed(2) + "</td>" +
+          "<td><b>" + esc(p.firm) + "</b><br><span style=\"font-size:.72rem;color:var(--haze)\">" +
+          esc((p.sectors || []).slice(0, 3).join(" · ")) + "</span></td>" +
+          "<td>" + esc(p.city || "—") + "</td>" +
+          "<td>" + why + "</td>" +
+          "<td>" + (p.conflict ? '<span class="chip">suppressed</span>'
+                   : p.contacts ? '<span class="chip ok">ready</span>'
+                   : '<span class="chip">needs partner</span>') + "</td></tr>";
+      }).join("") + "</tbody>";
+  }
+
+  function renderResearchGap() {
+    var rows = D.research_gap || [];
+    document.getElementById("research-gap").innerHTML =
+      "<thead><tr><th>Partner</th><th>Fund</th><th>Status</th></tr></thead><tbody>" +
+      rows.map(function (r) {
+        return "<tr><td>" + esc(r.name) + "</td><td>" + esc(r.firm || "") + "</td><td>" +
+          (r.ready ? '<span class="chip ok">ready to draft</span>'
+                   : '<span class="chip">' + esc(r.reason) + "</span>") + "</td></tr>";
+      }).join("") + "</tbody>";
+  }
+
   function renderLower() {
     document.getElementById("suppressed").innerHTML =
       "<thead><tr><th>Investor</th><th>Fund</th><th>Holds</th><th>Fit</th></tr></thead><tbody>" +
@@ -819,10 +933,19 @@
 
   function renderAll() {
     renderStrip();
+    renderGap();
+    renderProspects();
     renderFilters();
     renderQueue();
     renderDetail();
   }
+
+  document.getElementById("segment-filters").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-s]");
+    if (!b) return;
+    segmentFilter = b.dataset.s;
+    renderProspects();
+  });
 
   document.getElementById("filters").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-f]");
@@ -877,5 +1000,6 @@
 
   renderAll();
   renderLower();
+  renderResearchGap();
 })();
 </script>

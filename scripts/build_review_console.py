@@ -27,8 +27,8 @@ from pitchline.analytics import funnel
 from pitchline.db import get_engine, session_scope
 from pitchline.guardrails import lint_draft
 from pitchline.models import (
-    Campaign, Draft, DraftStatus, Evidence, Firm, Investor, PitchVariant,
-    StartupProfile, Target, TargetStatus, Update,
+    Campaign, Draft, DraftStatus, EmailConfidence, Evidence, Firm, FirmProspect, Investor,
+    PitchVariant, StartupProfile, Target, TargetStatus, Update,
 )
 from pitchline.rules import MAX_PITCH_WORDS, MIN_NOVELTY_SCORE, RULES, RULES_FINGERPRINT
 
@@ -129,6 +129,59 @@ def collect(campaign_name: str) -> dict:
                 "composite": round(target.composite_score, 2),
             })
         out["suppressed"] = out["suppressed"][:8]
+
+        # Firm-level prospecting: which funds are worth the homework, and what stands
+        # between the researched list and a sendable campaign.
+        prospects = list(
+            session.exec(select(FirmProspect).where(FirmProspect.campaign_id == campaign.id))
+        )
+        prospects.sort(key=lambda p: -p.composite_score)
+        out["prospects"] = []
+        for row in prospects:
+            firm = session.get(Firm, row.firm_id)
+            if firm is None:
+                continue
+            out["prospects"].append({
+                "firm": firm.name, "city": firm.hq_city, "country": firm.hq_country,
+                "sectors": firm.sectors, "stages": firm.stages,
+                "thesis": (firm.thesis_summary or "")[:280],
+                "portfolio": firm.portfolio_companies[:6],
+                "composite": round(row.composite_score, 2),
+                "scores": {
+                    "stage": row.stage_score, "sector": row.sector_score,
+                    "check_size": row.check_size_score, "geography": row.geography_score,
+                    "thesis_recency": row.thesis_recency_score,
+                    "portfolio_conflict": row.portfolio_conflict_score,
+                },
+                "rationales": row.rationales,
+                "conflict": row.has_portfolio_conflict,
+                "conflict_companies": row.conflict_companies,
+                "contacts": row.resolved_contacts,
+            })
+
+        all_investors = list(session.exec(select(Investor)))
+        named = [i for i in all_investors if i.full_name and not i.quarantined]
+        out["contact_gap"] = {
+            "firms": len(list(session.exec(select(Firm)))),
+            "named": len(named),
+            "with_email": sum(1 for i in named if i.email),
+            "verified": sum(
+                1 for i in named if i.email_confidence is EmailConfidence.VERIFIED
+            ),
+            "quarantined": sum(1 for i in all_investors if i.quarantined),
+        }
+        out["research_gap"] = []
+        from pitchline.research.store import research_coverage
+
+        for investor in named:
+            coverage = research_coverage(session, investor.id)  # type: ignore[arg-type]
+            firm = session.get(Firm, investor.firm_id) if investor.firm_id else None
+            out["research_gap"].append({
+                "name": investor.full_name, "firm": firm.name if firm else None,
+                "role": investor.role.value, "city": investor.city,
+                "ready": coverage.meets_floor, "reason": coverage.reason(),
+            })
+        out["research_gap"].sort(key=lambda r: (not r["ready"], r["firm"] or ""))
 
         out["variants"] = [
             {"slot": v.slot.value, "key": v.key, "label": v.label, "text": v.body_text,

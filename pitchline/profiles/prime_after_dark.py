@@ -149,6 +149,13 @@ UPDATES = [
 COMPETITORS = [
     "CloudKitchens",
     "Cloud Kitchens",
+    # Surfaced by the first prospecting run: a16z and Founders Fund ranked top on fit and
+    # both hold ghost-kitchen operators. A conflict list is never finished — it grows every
+    # time the ranking puts a fund at the top for the wrong reason.
+    "Virtual Kitchen Co",
+    "All Day Kitchens",
+    "Foodology",
+    "Ghost Kitchen Brands",
     "REEF Technology",
     "Reef Kitchens",
     "Kitchen United",
@@ -176,10 +183,14 @@ SECTORS = [
     "restaurant technology",
 ]
 
+#: Sector language only. Place names deliberately excluded: geography is scored on its own
+#: dimension (R1.2), and leaving "miami" in here double-counts it into the sector score —
+#: which ranks a generalist Miami fund above a food specialist in New York.
 KEYWORDS = [
-    "late night", "delivery", "ghost kitchen", "virtual brand", "restaurant", "hospitality",
-    "nightlife", "food", "beverage", "consumer brand", "miami", "brickell", "qsr",
-    "multi unit", "franchise", "logistics", "last mile", "dtc food", "cpg", "premium",
+    "late night", "delivery", "ghost kitchen", "cloud kitchen", "virtual brand", "restaurant",
+    "restaurants", "hospitality", "nightlife", "food", "beverage", "foodservice",
+    "consumer brand", "qsr", "fast casual", "multi unit", "franchise", "last mile",
+    "dtc food", "cpg", "culinary", "kitchen", "dining", "menu", "premium",
 ]
 
 

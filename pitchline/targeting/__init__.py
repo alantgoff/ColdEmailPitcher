@@ -11,6 +11,12 @@ from pitchline.targeting.conflicts import (
     override_conflict,
 )
 from pitchline.targeting.score import score_investor, ScoringSkipped
+from pitchline.targeting.prospect import (
+    ProspectReport,
+    ranked_prospects,
+    score_all_firms,
+    score_firm,
+)
 from pitchline.targeting.campaign import (
     CampaignCapExceeded,
     CampaignReport,
@@ -28,4 +34,8 @@ __all__ = [
     "CampaignReport",
     "build_campaign",
     "ranked_targets",
+    "ProspectReport",
+    "ranked_prospects",
+    "score_all_firms",
+    "score_firm",
 ]

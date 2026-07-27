@@ -32,6 +32,30 @@ pitchline send --campaign pad-ff                  # dry run by default
 streamlit run pitchline/app.py                    # the review UI
 ```
 
+### The researched investor list
+
+`data/investor_universe_2026.py` holds 253 records covering 242 real funds, angels and
+programmes, found through public web research in July 2026 and tagged by segment. Build
+the ingestible CSV and the contact worklist with:
+
+```bash
+python scripts/build_investor_csv.py      # -> data/investors_real.csv + contact_worklist.csv
+pitchline ingest data/investors_real.csv
+pitchline prospect --campaign pad-seed    # rank the FUNDS by fit
+pitchline contacts                        # what stands between the list and a send
+```
+
+**There are no email addresses in that file, on purpose.** None were verifiable, and an
+invented address bounces — which degrades the sending domain for every other recipient on
+the list, defeating the objective function the whole engine optimises. So every record
+carries `email_confidence = unknown`, and `send.preflight` raises
+`UnverifiedRecipientError` on any live send to an address that is not `verified`.
+
+`pitchline prospect` is deliberately separate from `pitchline target`. A prospect is a fund
+worth thirty minutes of homework; a target is a named person you can write to. Prospecting
+writes `FirmProspect` rows and never `Target` rows, so a ranked list of firms can never
+drift into a send queue.
+
 ### Shareable review console
 
 `streamlit run pitchline/app.py` is the operating surface — it writes approvals back to the

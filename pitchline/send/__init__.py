@@ -14,6 +14,7 @@ from pitchline.send.preflight import (
     SuppressedRecipientError,
     UnapprovedDraftError,
     UnknownTimezoneError,
+    UnverifiedRecipientError,
     preflight,
 )
 from pitchline.send.transport import (
@@ -38,6 +39,7 @@ __all__ = [
     "OutsideSendWindowError",
     "GuardrailNotPassedError",
     "UnknownTimezoneError",
+    "UnverifiedRecipientError",
     "preflight",
     "Transport",
     "DryRunTransport",

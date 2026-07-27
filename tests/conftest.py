@@ -15,6 +15,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from pitchline import demo, llm
 from pitchline.models import (
     Campaign,
+    EmailConfidence,
     Evidence,
     EvidenceArea,
     EvidenceKind,
@@ -129,6 +130,8 @@ def make_investor(
         is_partner_level=True,
         email=email or f"{name.split()[0].lower()}@northaven.vc",
         email_domain="northaven.vc",
+        # These fixtures exist to be dispatched to; a real list starts at UNKNOWN.
+        email_confidence=EmailConfidence.VERIFIED,
         timezone=timezone,
         country="United States",
         city="Boston",

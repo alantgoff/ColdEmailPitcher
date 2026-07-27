@@ -25,6 +25,7 @@ __all__ = [
     "InvestorRole",
     "Stage",
     "SourceType",
+    "EmailConfidence",
     "EvidenceArea",
     "EvidenceKind",
     "SlotKind",
@@ -55,6 +56,7 @@ __all__ = [
     "Suppression",
     "Event",
     "Experiment",
+    "FirmProspect",
     "PromptVersion",
 ]
 
@@ -93,6 +95,26 @@ class Stage(str, Enum):
     SERIES_B = "series_b"
     GROWTH = "growth"
     UNKNOWN = "unknown"
+
+
+class EmailConfidence(str, Enum):
+    """How much we actually know about an address.
+
+    This exists because a wrong address is not a neutral failure. A bounce is a signal to
+    the receiving domain that the sender does not know who they are writing to, and enough
+    of them will land the whole sending domain in spam — which costs every *good* address
+    on the list too. So an unverified address is treated as un-sendable rather than as a
+    best guess (R3.6).
+    """
+
+    #: Published by the fund, or confirmed by a delivery-verification service.
+    VERIFIED = "verified"
+    #: Inferred from a confirmed pattern at the same domain. Plausible, not confirmed.
+    PATTERN = "pattern"
+    #: A person and a domain, but no address. This is the honest default.
+    UNKNOWN = "unknown"
+    #: Known bad — bounced, or the fund published a do-not-contact.
+    INVALID = "invalid"
 
 
 class SourceType(str, Enum):
@@ -319,6 +341,11 @@ class Investor(ProvenanceMixin, table=True):
     is_partner_level: bool = Field(default=False, index=True)
     email: Optional[str] = Field(default=None, index=True)
     email_domain: Optional[str] = Field(default=None, index=True)
+    #: R3.6 — an unverified address may not be dispatched to; see send.preflight.
+    email_confidence: EmailConfidence = Field(default=EmailConfidence.UNKNOWN, index=True)
+    email_verified_at: Optional[datetime] = None
+    email_verified_by: Optional[str] = None
+    email_source: Optional[str] = None
     personal_site: Optional[str] = None
     blog_url: Optional[str] = None
     x_handle: Optional[str] = None
@@ -785,6 +812,41 @@ class Experiment(SQLModel, table=True):
     started_at: datetime = Field(default_factory=utcnow)
     ended_at: Optional[datetime] = None
     notes: Optional[str] = None
+
+
+class FirmProspect(LLMProvenanceMixin, table=True):
+    """A firm-level relevance score, used before a partner has been resolved.
+
+    This is deliberately NOT a ``Target``. A target is a named person you can write to; a
+    prospect is a fund that looks worth the thirty minutes of homework it takes to find
+    that person. Keeping them apart stops a ranked list of *firms* from being mistaken for
+    a campaign list of *people*, which is exactly the confusion R1.4 exists to prevent.
+    """
+
+    __tablename__ = "firm_prospects"
+    __table_args__ = (
+        UniqueConstraint("campaign_id", "firm_id", name="uq_prospect_campaign_firm"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    campaign_id: int = Field(foreign_key="campaigns.id", index=True)
+    firm_id: int = Field(foreign_key="firms.id", index=True)
+
+    stage_score: int = 0
+    sector_score: int = 0
+    check_size_score: int = 0
+    geography_score: int = 0
+    thesis_recency_score: int = 0
+    portfolio_conflict_score: int = 0
+    composite_score: float = Field(default=0.0, index=True)
+    rationales: dict[str, str] = Field(default_factory=dict, sa_column=Column(JSON))
+
+    has_portfolio_conflict: bool = Field(default=False, index=True)
+    conflict_companies: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+
+    segment: Optional[str] = Field(default=None, index=True)
+    #: How many named, contactable partners this firm has resolved so far.
+    resolved_contacts: int = Field(default=0, index=True)
 
 
 class PromptVersion(SQLModel, table=True):

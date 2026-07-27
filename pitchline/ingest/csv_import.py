@@ -27,6 +27,7 @@ from sqlmodel import Session, select
 
 from pitchline import events, textutil as tu
 from pitchline.models import (
+    EmailConfidence,
     Evidence,
     EvidenceArea,
     EvidenceKind,
@@ -46,6 +47,8 @@ COLUMN_ALIASES: dict[str, tuple[str, ...]] = {
     "firm": ("firm", "firm name", "fund", "fund name", "organization", "organisation", "company", "investor firm", "vc firm"),
     "role": ("role", "title", "position", "job title", "seniority"),
     "email": ("email", "email address", "e-mail", "contact email", "work email"),
+    "email_confidence": ("email confidence", "email status", "verification status"),
+    "segment": ("segment", "category", "tier"),
     "website": ("website", "firm website", "url", "fund website", "domain"),
     "personal_site": ("personal site", "blog", "personal website", "substack"),
     "x_handle": ("twitter", "x", "twitter handle", "x handle"),
@@ -192,6 +195,14 @@ def _parse_date(value: str) -> "datetime | None":
     return None
 
 
+def _parse_confidence(value: str) -> EmailConfidence:
+    """Absent or unrecognised means unknown. Never optimistic by default."""
+    try:
+        return EmailConfidence((value or "").strip().lower())
+    except ValueError:
+        return EmailConfidence.UNKNOWN
+
+
 def _normalize_stage(value: str) -> str:
     token = value.strip().lower().replace("-", " ").replace("_", " ")
     table = {
@@ -270,7 +281,15 @@ def _import_row(
         first, last = _get(row, colmap, "first_name"), _get(row, colmap, "last_name")
         full_name = " ".join(p for p in (first, last) if p).strip()
     if not full_name:
-        report.note_quarantine("no_name")
+        # A firm with no named individual is real data, but it is not a target. R1.4 wants
+        # a person; record the firm, bank its evidence, and flag the missing partner as the
+        # work to be done.
+        firm_only = _upsert_firm(session, _get(row, colmap, "firm"), row, colmap, source, path, report)
+        if firm_only is not None and create_evidence:
+            report.evidence_created += _seed_evidence(
+                session, None, firm_only, row, colmap, path, source
+            )
+        report.note_quarantine("needs_partner_resolution")
         return
 
     firm_name = _get(row, colmap, "firm")
@@ -289,13 +308,15 @@ def _import_row(
     email = tu.normalize_email(_get(row, colmap, "email"))
 
     # R1.4 — decide up front whether this row belongs in the campaign universe.
+    # Quarantine is about whether this is the right *kind* of record (R1.4), not about
+    # whether we can reach them yet. A named partner with no address is still a legitimate
+    # target to research and draft for; send.preflight refuses the dispatch until the
+    # address is verified, which is the correct place for that decision.
     quarantine_reason: str | None = None
     if not is_partner_level(role.value):
         quarantine_reason = f"role_not_partner_level:{role.value}"
     elif email and is_generic_mailbox(email):
         quarantine_reason = "generic_mailbox"
-    elif not email:
-        quarantine_reason = "no_email"
 
     stages = [_normalize_stage(s) for s in _split_multi(_get(row, colmap, "stages"))]
     sectors = _split_multi(_get(row, colmap, "sectors"))
@@ -313,6 +334,7 @@ def _import_row(
         "is_partner_level": is_partner_level(role.value),
         "email": email or None,
         "email_domain": tu.email_domain(email) or None,
+        "email_confidence": _parse_confidence(_get(row, colmap, "email_confidence")),
         "personal_site": _get(row, colmap, "personal_site") or None,
         "x_handle": _get(row, colmap, "x_handle") or None,
         "country": _get(row, colmap, "country") or None,
@@ -405,7 +427,7 @@ def _upsert_firm(
 
 def _seed_evidence(
     session: Session,
-    investor: Investor,
+    investor: Investor | None,
     firm: Firm | None,
     row: Mapping[str, Any],
     colmap: Mapping[str, str],
@@ -428,14 +450,14 @@ def _seed_evidence(
     candidates: list[tuple[EvidenceArea, EvidenceKind, str, str, list[str]]] = []
     if thesis:
         candidates.append(
-            (EvidenceArea.THESIS, EvidenceKind.THESIS_STATEMENT, f"{investor.full_name} stated thesis", thesis, [])
+            (EvidenceArea.THESIS, EvidenceKind.THESIS_STATEMENT, f"{(investor.full_name if investor else firm.name if firm else 'investor')} stated thesis", thesis, [])
         )
     if portfolio:
         candidates.append(
             (
                 EvidenceArea.PORTFOLIO,
                 EvidenceKind.PORTFOLIO_COMPANY,
-                f"{firm.name if firm else investor.full_name} portfolio",
+                f"{(firm.name if firm else investor.full_name if investor else 'fund')} portfolio",
                 "Portfolio companies on record: " + ", ".join(portfolio) + ".",
                 portfolio,
             )
@@ -445,7 +467,7 @@ def _seed_evidence(
             (
                 EvidenceArea.RECENT_ACTIVITY,
                 EvidenceKind.INVESTMENT,
-                f"{investor.full_name} recent investments",
+                f"{(investor.full_name if investor else firm.name if firm else 'investor')} recent investments",
                 "Recent investments on record: " + ", ".join(recent_investments) + ".",
                 recent_investments,
             )
@@ -455,24 +477,27 @@ def _seed_evidence(
             (
                 EvidenceArea.RECENT_ACTIVITY,
                 EvidenceKind.BLOG_POST,
-                f"{investor.full_name} recent writing",
+                f"{(investor.full_name if investor else firm.name if firm else 'investor')} recent writing",
                 recent_writing,
                 [],
             )
         )
 
+    investor_id = investor.id if investor else None
     for area, kind, title, text, entities in candidates:
         digest = tu.content_hash(text)
         exists = session.exec(
             select(Evidence).where(
-                Evidence.investor_id == investor.id, Evidence.content_hash == digest
+                Evidence.investor_id == investor_id,
+                Evidence.firm_id == (firm.id if firm else None),
+                Evidence.content_hash == digest,
             )
         ).first()
         if exists:
             continue
         session.add(
             Evidence(
-                investor_id=investor.id,
+                investor_id=investor_id,
                 firm_id=firm.id if firm else None,
                 area=area,
                 kind=kind,

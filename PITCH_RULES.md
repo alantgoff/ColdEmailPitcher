@@ -82,10 +82,22 @@ conflict. A target below the minimum composite, or below the floor on either of 
 dimensions the source calls out explicitly (stage, sector), is dropped from the campaign.
 Each dimension rationale must cite at least one `evidence_id` (R2.6).
 
+The six dimensions are not equally predictive. "An investor who focuses on healthcare SaaS
+is not going to reply to a pitch about consumer gaming" is a statement about *sector*, and
+the source makes no equivalent claim about geography. Weighting them equally lets a
+generalist fund in the right city outrank a specialist in the wrong one, which inverts the
+source's actual finding. The composite is therefore a weighted mean.
+
+> **RULE-CHECK:** the source establishes that matching matters and which signals it used
+> (past investments, stated interests), but publishes no weights. These are the stricter
+> reading of "map each investor's past investments and stated interests" — sector and stage
+> carry most of the weight, geography least.
+
 ```params
 score_scale_min = 0
 score_scale_max = 5
 dimensions = ["stage", "sector", "check_size", "geography", "thesis_recency", "portfolio_conflict"]
+dimension_weights = [0.25, 0.30, 0.15, 0.10, 0.10, 0.10]
 min_composite_score = 3.0
 min_stage_score = 3
 min_sector_score = 3
