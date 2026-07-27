@@ -194,8 +194,8 @@ VERTICALS = {
         ],
         "cities": "miami_weighted",
         "check_bands": [
-            ("$25k", "$100k"), ("$50k", "$250k"), ("50000", "500000"),
-            ("$100k", "$500k"), ("$250k", "$1M"), ("$500k", "$2M"),
+            ("$250k", "$1M"), ("$500k", "$2M"), ("250000", "1500000"),
+            ("$1M", "$3M"), ("$100k", "$500k"), ("$50k", "$250k"),
         ],
     },
 }
@@ -370,9 +370,11 @@ def build_rows(vertical: str = "health") -> list[dict[str, str]]:
             "LinkedIn": f"https://www.linkedin.com/in/{local}",
         }
 
-    titles = PARTNER_TITLES + (ANGEL_TITLES if vertical == "food" else [])
     for _ in range(TOTAL_PARTNER_ROWS):
-        rows.append(make_row(title=rng.choice(titles), email_style="personal"))
+        # Mostly institutional partners; angels are a minority of a seed round's list.
+        angel = vertical == "food" and rng.random() < 0.12
+        title = rng.choice(ANGEL_TITLES if angel else PARTNER_TITLES)
+        rows.append(make_row(title=title, email_style="personal"))
     for _ in range(NON_PARTNER_ROWS):
         rows.append(make_row(title=rng.choice(NON_PARTNER_TITLES), email_style="personal"))
     for _ in range(GENERIC_INBOX_ROWS):

@@ -50,7 +50,7 @@ def food_investor(session):
         name="Sofia Chen",
         firm_name="Highgate Capital",
         sectors=["food and beverage", "restaurant tech", "consumer", "hospitality"],
-        stages=["pre_seed", "seed"],
+        stages=["seed", "series_a"],
         portfolio=["Nocturne Hospitality", "Late Plate"],
     )
     investor.thesis_summary = (
@@ -92,7 +92,7 @@ def food_investor(session):
 
 
 def test_the_pack_seeds_a_complete_founder_setup(session, pad_profile):
-    assert pad_profile.stage is Stage.PRE_SEED, "a friends & family round is pre-seed"
+    assert pad_profile.stage is Stage.SEED, "raising an institutional seed, not F&F"
     assert pad_profile.raising_usd == 2_500_000
     assert pad_profile.geography == "miami"
 
@@ -300,7 +300,7 @@ def test_a_real_competitor_holding_is_still_detected(pad_profile):
 
 
 def test_angels_are_inside_the_campaign_universe(session):
-    """R1.4 — for a friends & family round the angel *is* the decision-maker."""
+    """R1.4 — angels co-invest in seed rounds and decide for themselves."""
     from pitchline.ingest import parse_role
     from pitchline.rules import is_partner_level
 

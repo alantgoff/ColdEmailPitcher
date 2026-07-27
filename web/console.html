@@ -1,0 +1,881 @@
+<title>Prime After Dark — outreach review</title>
+
+<style>
+  :root {
+    --night: #0b0f16;
+    --slab: #151b26;
+    --raise: #1d2634;
+    --edge: #26313f;
+    --text: #e4e9f0;
+    --haze: #8896a8;
+    --brass: #d2a24c;
+    --brass-dim: #8a6c31;
+    --jade: #57a582;
+    --rust: #cf5a48;
+    --slate: #7d8ba3;
+    --shadow: rgba(0, 0, 0, 0.45);
+
+    --display: ui-serif, "Iowan Old Style", "Hoefler Text", "Palatino Linotype", Palatino, Georgia, serif;
+    --ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --rail: 19rem;
+    --step: 0.35rem;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --night: #f4f4f2;
+      --slab: #ffffff;
+      --raise: #fbfbfa;
+      --edge: #dedcd6;
+      --text: #131820;
+      --haze: #5f6a7a;
+      --brass: #8a6415;
+      --brass-dim: #c0a469;
+      --jade: #1f6f4c;
+      --rust: #a83422;
+      --slate: #5a6779;
+      --shadow: rgba(20, 24, 32, 0.1);
+    }
+  }
+  :root[data-theme="dark"] {
+    --night: #0b0f16; --slab: #151b26; --raise: #1d2634; --edge: #26313f;
+    --text: #e4e9f0; --haze: #8896a8; --brass: #d2a24c; --brass-dim: #8a6c31;
+    --jade: #57a582; --rust: #cf5a48; --slate: #7d8ba3; --shadow: rgba(0,0,0,.45);
+  }
+  :root[data-theme="light"] {
+    --night: #f4f4f2; --slab: #ffffff; --raise: #fbfbfa; --edge: #dedcd6;
+    --text: #131820; --haze: #5f6a7a; --brass: #8a6415; --brass-dim: #c0a469;
+    --jade: #1f6f4c; --rust: #a83422; --slate: #5a6779; --shadow: rgba(20,24,32,.1);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--text);
+    font-family: var(--ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0; }
+
+  a { color: var(--brass); }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 1px solid var(--edge);
+    border-radius: 2px;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--brass-dim); }
+  :focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+  .eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--haze);
+    font-family: var(--ui);
+    font-weight: 600;
+  }
+
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------------- top bar ---------------- */
+
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    align-items: baseline;
+    padding: 1.1rem clamp(1rem, 3vw, 2rem) 0.9rem;
+    border-bottom: 1px solid var(--edge);
+    background: var(--slab);
+  }
+  .mark { display: flex; align-items: baseline; gap: 0.6rem; }
+  .mark h1 { font-size: 1.3rem; letter-spacing: 0.01em; }
+  .mark .dot {
+    width: 0.5rem; height: 0.5rem; border-radius: 50%;
+    background: var(--brass); flex: none; align-self: center;
+  }
+  .window-sig {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--haze);
+    border-left: 1px solid var(--edge);
+    padding-left: 0.9rem;
+  }
+  .window-sig b { color: var(--brass); font-weight: 600; }
+
+  .topbar .spacer { flex: 1 1 2rem; }
+
+  .who { display: flex; align-items: center; gap: 0.5rem; }
+  .who label { font-size: 0.75rem; color: var(--haze); }
+  .who input {
+    font: inherit; font-size: 0.85rem;
+    background: var(--raise); color: var(--text);
+    border: 1px solid var(--edge); border-radius: 2px;
+    padding: 0.35rem 0.6rem; width: 11rem;
+  }
+
+  /* ---------------- stats strip ---------------- */
+
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 1px;
+    background: var(--edge);
+    border-bottom: 1px solid var(--edge);
+  }
+  .stat { background: var(--slab); padding: 0.8rem clamp(1rem, 3vw, 2rem); }
+  .stat .v { font-family: var(--display); font-size: 1.5rem; line-height: 1.1; }
+  .stat .k { font-size: 0.7rem; color: var(--haze); letter-spacing: 0.06em; }
+  .stat.accent .v { color: var(--brass); }
+
+  /* ---------------- preflight ---------------- */
+
+  .preflight {
+    padding: 1.1rem clamp(1rem, 3vw, 2rem);
+    border-bottom: 1px solid var(--edge);
+    background: var(--night);
+  }
+  .preflight h2 { font-size: 1rem; margin-bottom: 0.15rem; }
+  .preflight > p { margin: 0.15rem 0 0.9rem; color: var(--haze); font-size: 0.85rem; max-width: 62ch; }
+  .blockers { display: grid; gap: 1px; background: var(--edge); border: 1px solid var(--edge); }
+  .blocker {
+    background: var(--slab);
+    display: grid;
+    grid-template-columns: 0.45rem 1fr;
+    gap: 0.9rem;
+    padding: 0;
+  }
+  .blocker .bar { background: var(--rust); }
+  .blocker.warn .bar { background: var(--brass); }
+  .blocker .cell { padding: 0.7rem 0.9rem 0.75rem 0; }
+  .blocker b { font-weight: 600; }
+  .blocker p { margin: 0.15rem 0 0; color: var(--haze); font-size: 0.85rem; }
+  .blocker code {
+    font-family: var(--mono); font-size: 0.78rem;
+    background: var(--raise); padding: 0.05rem 0.3rem; border-radius: 2px;
+    color: var(--text);
+  }
+
+  /* ---------------- console ---------------- */
+
+  .console {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .queue {
+    border-right: 1px solid var(--edge);
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+    background: var(--night);
+  }
+  .queue-head {
+    padding: 0.85rem 1rem 0.6rem;
+    border-bottom: 1px solid var(--edge);
+    position: sticky; top: 0; background: var(--night); z-index: 2;
+  }
+  .filters { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.55rem; }
+  .filters button {
+    font-size: 0.72rem; padding: 0.22rem 0.5rem; color: var(--haze);
+  }
+  .filters button[aria-pressed="true"] {
+    color: var(--night); background: var(--brass); border-color: var(--brass); font-weight: 600;
+  }
+  :root[data-theme="light"] .filters button[aria-pressed="true"],
+  :root:not([data-theme="dark"]) .filters button[aria-pressed="true"] { color: #fff; }
+  :root[data-theme="dark"] .filters button[aria-pressed="true"] { color: var(--night); }
+
+  .qlist { list-style: none; margin: 0; padding: 0; }
+  .qitem {
+    display: grid;
+    grid-template-columns: 0.3rem 1fr auto;
+    gap: 0.7rem;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    border-bottom: 1px solid var(--edge);
+    border-radius: 0;
+    padding: 0.6rem 0.9rem 0.6rem 0;
+    background: none;
+  }
+  .qitem:hover { background: var(--slab); }
+  .qitem[aria-current="true"] { background: var(--slab); }
+  .qitem .state { align-self: stretch; background: var(--edge); }
+  .qitem[data-decision="approve"] .state { background: var(--jade); }
+  .qitem[data-decision="reject"] .state { background: var(--rust); }
+  .qitem[data-decision="rework"] .state { background: var(--brass); }
+  .qitem .nm { font-size: 0.86rem; font-weight: 500; }
+  .qitem .sub { font-size: 0.72rem; color: var(--haze); }
+  .qitem .fit { font-family: var(--mono); font-size: 0.78rem; color: var(--brass); }
+
+  /* ---------------- detail ---------------- */
+
+  .detail { padding: 1.25rem clamp(1rem, 3vw, 2rem) 3rem; min-width: 0; }
+
+  .who-head { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: baseline; }
+  .who-head h2 { font-size: 1.35rem; }
+  .who-head .meta { font-size: 0.8rem; color: var(--haze); }
+
+  .panes { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 1.5rem; margin-top: 1.1rem; }
+
+  .email {
+    background: var(--slab);
+    border: 1px solid var(--edge);
+    border-left: 3px solid var(--brass);
+    box-shadow: 0 1px 3px var(--shadow);
+    min-width: 0;
+  }
+  .email header { padding: 0.8rem 1.1rem; border-bottom: 1px solid var(--edge); }
+  .email .hrow { display: flex; gap: 0.6rem; font-size: 0.8rem; }
+  .email .hrow .lab { color: var(--haze); width: 4.2rem; flex: none; font-size: 0.72rem; padding-top: 0.1rem; }
+  .email .hrow .val { font-family: var(--mono); font-size: 0.8rem; word-break: break-word; }
+  .email .subject { font-weight: 600; }
+  .email pre {
+    margin: 0;
+    padding: 1.1rem;
+    font-family: var(--mono);
+    font-size: 0.83rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .email .sig { border-top: 1px dashed var(--edge); color: var(--haze); }
+  .email mark {
+    background: color-mix(in srgb, var(--brass) 22%, transparent);
+    color: inherit;
+    border-bottom: 1px solid var(--brass-dim);
+    padding: 0.05em 0;
+  }
+
+  .card {
+    background: var(--slab);
+    border: 1px solid var(--edge);
+    padding: 0.95rem 1.05rem;
+  }
+  .card + .card { margin-top: 1rem; }
+  /* Variant keys and evidence URLs are long unbroken tokens; without this they push the
+     whole page sideways on a narrow viewport. */
+  .card code, .claim .src { overflow-wrap: anywhere; word-break: break-word; }
+  .card code { display: inline-block; max-width: 100%; }
+  .card h3 { font-size: 0.95rem; margin-bottom: 0.1rem; }
+  .card > p.hint { margin: 0.1rem 0 0.8rem; font-size: 0.78rem; color: var(--haze); }
+
+  .claim { border-left: 2px solid var(--brass); padding-left: 0.8rem; margin-bottom: 0.9rem; }
+  .claim .said { font-size: 0.85rem; margin: 0 0 0.45rem; }
+  .claim .src {
+    font-size: 0.75rem; color: var(--haze); font-family: var(--mono);
+    display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
+  }
+  .claim .quote {
+    margin: 0.35rem 0 0; padding: 0.5rem 0.65rem;
+    background: var(--raise); border: 1px solid var(--edge);
+    font-size: 0.78rem; color: var(--haze); line-height: 1.5;
+  }
+
+  .dims { display: grid; gap: 0.4rem; }
+  .dim { display: grid; grid-template-columns: 7.5rem 3.2rem minmax(0, 1fr); gap: 0.6rem; align-items: center; font-size: 0.78rem; }
+  .dim .lab { color: var(--haze); }
+  .dim .bar { display: flex; gap: 2px; }
+  .dim .bar i { width: 0.42rem; height: 0.72rem; background: var(--edge); border-radius: 1px; }
+  .dim .bar i.on { background: var(--brass); }
+  .dim .bar i.on.low { background: var(--rust); }
+  .dim .why { color: var(--haze); font-size: 0.75rem; min-width: 0; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .chip {
+    font-size: 0.7rem; padding: 0.15rem 0.45rem; border: 1px solid var(--edge);
+    border-radius: 999px; color: var(--haze);
+  }
+  .chip.ok { color: var(--jade); border-color: color-mix(in srgb, var(--jade) 45%, transparent); }
+  .chip.brass { color: var(--brass); border-color: var(--brass-dim); }
+
+  .decide { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.1rem; align-items: center; }
+  .decide button { font-size: 0.85rem; font-weight: 500; }
+  .decide button.approve[aria-pressed="true"] { background: var(--jade); border-color: var(--jade); color: #08130d; }
+  .decide button.rework[aria-pressed="true"] { background: var(--brass); border-color: var(--brass); color: #17120a; }
+  .decide button.reject[aria-pressed="true"] { background: var(--rust); border-color: var(--rust); color: #fff; }
+  .decide .keys { font-size: 0.72rem; color: var(--haze); font-family: var(--mono); margin-left: auto; }
+  .note {
+    width: 100%; margin-top: 0.6rem; font: inherit; font-size: 0.82rem;
+    background: var(--raise); color: var(--text);
+    border: 1px solid var(--edge); border-radius: 2px; padding: 0.5rem 0.6rem;
+    resize: vertical; min-height: 2.6rem;
+  }
+
+  /* ---------------- lower sections ---------------- */
+
+  .lower { padding: 0 clamp(1rem, 3vw, 2rem) 3rem; display: grid; gap: 1.5rem; }
+  .lower section { border-top: 1px solid var(--edge); padding-top: 1.4rem; }
+  .lower h2 { font-size: 1.05rem; }
+  .lower > section > p { color: var(--haze); font-size: 0.85rem; max-width: 66ch; margin: 0.2rem 0 1rem; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+  th, td { text-align: left; padding: 0.45rem 0.7rem 0.45rem 0; border-bottom: 1px solid var(--edge); vertical-align: top; }
+  th { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--haze); font-weight: 600; }
+  .scroll { overflow-x: auto; }
+
+  .banner {
+    display: flex; gap: 0.75rem; align-items: flex-start;
+    padding: 0.7rem clamp(1rem, 3vw, 2rem);
+    background: var(--raise);
+    border-bottom: 1px solid var(--edge);
+    font-size: 0.82rem;
+    color: var(--haze);
+  }
+  .banner b { color: var(--text); }
+
+  footer {
+    padding: 1.4rem clamp(1rem, 3vw, 2rem) 2.5rem;
+    border-top: 1px solid var(--edge);
+    color: var(--haze);
+    font-size: 0.78rem;
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: baseline;
+  }
+  footer .fp { font-family: var(--mono); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%);
+    background: var(--slab); border: 1px solid var(--brass-dim);
+    padding: 0.6rem 1rem; font-size: 0.84rem; box-shadow: 0 4px 16px var(--shadow);
+    opacity: 0; pointer-events: none; transition: opacity 0.18s ease;
+    z-index: 40; max-width: 90vw;
+  }
+  .toast.on { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  @media (max-width: 1050px) {
+    .panes { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .dim { grid-template-columns: 6rem 3.2rem minmax(0, 1fr); gap: 0.4rem; font-size: 0.74rem; }
+    .qitem { grid-template-columns: 0.3rem minmax(0, 1fr) auto; }
+    .stat { padding-left: 1rem; padding-right: 1rem; }
+  }
+  @media (max-width: 860px) {
+    .console { grid-template-columns: minmax(0, 1fr); }
+    .queue { position: static; max-height: 22rem; border-right: 0; border-bottom: 1px solid var(--edge); }
+  }
+</style>
+
+<header class="topbar">
+  <div class="mark">
+    <span class="dot" aria-hidden="true"></span>
+    <h1>Prime After Dark</h1>
+  </div>
+  <div class="window-sig">
+    seed · $2.5M &nbsp;·&nbsp; send window <b>Tue–Thu 07:00–10:00</b> recipient-local
+  </div>
+  <div class="spacer"></div>
+  <div class="who">
+    <label for="reviewer">Reviewing as</label>
+    <input id="reviewer" type="text" placeholder="your name" autocomplete="name" />
+  </div>
+</header>
+
+<div class="banner">
+  <span aria-hidden="true">⚠</span>
+  <p style="margin:0">
+    <b>This list is synthetic.</b> The 570 investors here were generated to exercise the
+    pipeline end to end — none of them are real people and nothing has been sent. The emails,
+    the evidence and the scoring are real output from your own copy. Swap in a genuine
+    investor export and the same review runs against real targets.
+  </p>
+</div>
+
+<div class="strip" id="strip"></div>
+
+<section class="preflight">
+  <h2>Before anything sends</h2>
+  <p>Five things gate a live send. The first two will block the software; the rest will only
+     cost you replies.</p>
+  <div class="blockers">
+    <div class="blocker">
+      <div class="bar"></div>
+      <div class="cell">
+        <b>The deck cover still says “Friends &amp; Family Round”</b>
+        <p>You are raising an institutional seed. A fund reads that mismatch as a stale deck or
+           a round that failed to fill — and it is the first slide they see.</p>
+      </div>
+    </div>
+    <div class="blocker">
+      <div class="bar"></div>
+      <div class="cell">
+        <b>Postal address is a placeholder</b>
+        <p>CAN-SPAM requires a real physical address in every commercial email. The footer gate
+           fails on the template string, so nothing can send until it is filled.
+           <code>pitchline profile-set --postal-address "..."</code></p>
+      </div>
+    </div>
+    <div class="blocker warn">
+      <div class="bar"></div>
+      <div class="cell">
+        <b>Follow-up updates have no numbers in them</b>
+        <p>“LOIs in progress” and “waitlist growing” came off the traction slide. A follow-up
+           has to carry genuinely new information, so each one needs a date and a figure —
+           a signed LOI with a named counterparty, a waitlist count, soft-launch orders and
+           repeat rate. Until then the second touch is weak even though it passes every check.</p>
+      </div>
+    </div>
+    <div class="blocker warn">
+      <div class="bar"></div>
+      <div class="cell">
+        <b>The sending domain is on day zero of its warmup</b>
+        <p>A new domain gets five sends a day, not forty. That ramp is deliberate: the study this
+           system is built on lost roughly a quarter of its emails to spam filters as volume
+           climbed. Reputation is earned, not configured.</p>
+      </div>
+    </div>
+    <div class="blocker warn">
+      <div class="bar"></div>
+      <div class="cell">
+        <b>Two credibility markers need a figure attached</b>
+        <p>“Soft launch confirmed demand” and “LOIs in progress” are your two strongest opening
+           lines with a number, and your two weakest without. Every email below opens with one
+           of your five registered markers — these two are the ones an investor tests first.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main class="console">
+  <aside class="queue">
+    <div class="queue-head">
+      <span class="eyebrow">Queue</span>
+      <div class="filters" id="filters" role="group" aria-label="Filter drafts"></div>
+    </div>
+    <ul class="qlist" id="qlist"></ul>
+  </aside>
+
+  <section class="detail" id="detail" aria-live="polite"></section>
+</main>
+
+<div class="lower">
+  <section>
+    <h2>Refused before it reached this queue</h2>
+    <p>Funds holding a direct competitor are suppressed by default. An override needs a named
+       person and a written reason — a model cannot grant one. These scored well enough to
+       qualify on every other dimension.</p>
+    <div class="scroll"><table id="suppressed"></table></div>
+  </section>
+
+  <section>
+    <h2>Your copy library</h2>
+    <p>Every sentence in every email above came from here. The engine chooses which variant fits
+       an investor and writes exactly one personalised line; it never writes the pitch. That is
+       what makes “variant B beat variant A” a statement about your words rather than about a
+       sampling temperature.</p>
+    <div class="scroll"><table id="library"></table></div>
+  </section>
+
+  <section>
+    <h2>What each email had to clear</h2>
+    <p>Fourteen checks run on every draft before it can appear in this queue. A draft that fails
+       is repaired and retried twice, then handed to a person.</p>
+    <div class="scroll"><table id="gates"></table></div>
+  </section>
+</div>
+
+<footer>
+  <span>Decisions are saved in this browser only — nothing here sends email.</span>
+  <span class="fp" id="fp"></span>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="application/json" id="payload">{"profile":{"name":"Prime After Dark","one_liner":"Prime After Dark is Miami's premium food delivery brand built exclusively for midnight to 4:30AM.","stage":"seed","raising":2500000.0,"check_min":250000.0,"check_max":2000000.0,"geography":"miami","postal":"Prime After Dark LLC, 1 Example Way, Miami, FL 33131","deck":"https://primeafterdark.com/deck","cal":"https://cal.com/primeafterdark/intro"},"rules":{"fingerprint":"1.0.0+f8978723d463","max_words":150,"min_novelty":4.0,"count":27},"funnel":{"targets_scored":351,"targets_suppressed_conflict":22,"targets_dropped_low_fit":256,"targets_qualified":73,"drafts_pending_approval":25,"sends":0,"replies":0},"drafts":[{"id":1,"touch":1,"subject":"Prime After Dark \u2014 restaurants go dark at peak","greeting":"Hi Felix,","body":"Our Brickell soft launch confirmed real demand for premium food after midnight. Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.\n\nEvery top Miami restaurant is dark before midnight, which is exactly when the city's nightlife peaks.\n\nRecipes and packaging are engineered for delivery, so a steakhouse-quality protein still arrives intact at 2AM.\n\nHappy to send the deck if that is useful.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":86,"novelty":5.0,"variant":"cred_soft_launch|problem_dark_kitchens|approach_delivery_engineered|ask_deck","ask_type":"deck_offer","marker":"traction_metric","checks":15,"passed":true,"investor":{"name":"Felix Nguyen","email":"felix.nguyen@highgate.vc","role":"founding_partner","firm":"Highgate Labs","city":"Miami","tz":"America/New_York","stages":["seed"],"sectors":["Food & Beverage","Restaurant Tech","Consumer"],"check_min":500000.0,"check_max":2000000.0},"fit":{"composite":4.33,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention beverage, consumer, food, hospitality","check_size":"partial overlap with their $500k-$2M band","geography":"both in miami","thesis_recency":"most recent public activity is 59 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[541],"sector":[541,542],"check_size":[541],"geography":[],"thesis_recency":[541],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":5,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":541,"area":"thesis","kind":"thesis_statement","url":"https://highgate.vc","title":"Felix Nguyen stated thesis","excerpt":"We back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators who have actually run kitchens."}]},{"id":2,"touch":1,"subject":"Prime After Dark \u2014 fastest-growing daypart, unserved","greeting":"Hi Jonas,","body":"I ran high-volume restaurant operations in New York before starting Prime After Dark. Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.\n\nLate night is the fastest-growing daypart in food delivery, up 7.5% year over year, and no premium operator serves it.\n\nWe operate only from 12AM to 4:30AM, so we own the window when every premium competitor is closed.\n\nOpen to a short call in the next week or two if this is relevant.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":99,"novelty":5.0,"variant":"cred_nyc_ops|problem_open_daypart|approach_night_only|ask_quick_call","ask_type":"quick_call_in_next_week_or_two","marker":"prior_company","checks":15,"passed":true,"investor":{"name":"Jonas Weber","email":"jonas.weber@rivermark.vc","role":"general_partner","firm":"Rivermark Capital Partners","city":"Miami","tz":"America/New_York","stages":["seed"],"sectors":["Consumer Brands","CPG","Food"],"check_min":1000000.0,"check_max":3000000.0},"fit":{"composite":4.33,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention brickell, consumer, food, ghost","check_size":"partial overlap with their $1M-$3M band","geography":"both in miami","thesis_recency":"most recent public activity is 84 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[1877],"sector":[1877,1878],"check_size":[1877],"geography":[],"thesis_recency":[1877],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":5,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":1877,"area":"thesis","kind":"thesis_statement","url":"https://rivermark.vc","title":"Jonas Weber stated thesis","excerpt":"We invest in Miami consumer companies. Nightlife, hospitality and food are the categories this city exports, and we fund founders building in them."}]},{"id":3,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Nadia,","body":"Our operating team comes out of New York premium kitchens, not out of a delivery app. Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":89,"novelty":5.0,"variant":"cred_kitchen_team|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"domain_expertise","checks":15,"passed":true,"investor":{"name":"Nadia Costa","email":"nadia.costa@rivermark.vc","role":"venture_partner","firm":"Rivermark Capital Partners","city":"Miami","tz":"America/New_York","stages":["seed"],"sectors":["Consumer Brands","CPG","Food"],"check_min":1000000.0,"check_max":3000000.0},"fit":{"composite":4.17,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention brickell, consumer, delivery, food","check_size":"partial overlap with their $1M-$3M band","geography":"both in miami","thesis_recency":"most recent public activity is 163 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[1041],"sector":[1041,1042],"check_size":[1041],"geography":[],"thesis_recency":[1041],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":5,"thesis_recency":4,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":1041,"area":"thesis","kind":"thesis_statement","url":"https://rivermark.vc","title":"Nadia Costa stated thesis","excerpt":"We invest in Miami consumer companies. Nightlife, hospitality and food are the categories this city exports, and we fund founders building in them."}]},{"id":4,"touch":1,"subject":"Prime After Dark \u2014 fastest-growing daypart, unserved","greeting":"Hi Talia,","body":"Our operating team comes out of New York premium kitchens, not out of a delivery app. Your stated thesis \u2014 \"Early-stage consumer brands with real unit economics\" \u2014 is why I am writing to you rather than mass-mailing.\n\nLate night is the fastest-growing daypart in food delivery, up 7.5% year over year, and no premium operator serves it.\n\nWe operate only from 12AM to 4:30AM, so we own the window when every premium competitor is closed.\n\nOpen to a short call in the next week or two if this is relevant.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":93,"novelty":5.0,"variant":"cred_kitchen_team|problem_open_daypart|approach_night_only|ask_quick_call","ask_type":"quick_call_in_next_week_or_two","marker":"domain_expertise","checks":15,"passed":true,"investor":{"name":"Talia Novak","email":"talia.novak@tidewater.vc","role":"managing_partner","firm":"Tidewater Ventures","city":"Miami Beach","tz":"America/New_York","stages":["seed","series_a"],"sectors":["Consumer Brands","CPG","Food"],"check_min":50000.0,"check_max":250000.0},"fit":{"composite":4.17,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention consumer, food, hospitality, kitchen","check_size":"partial overlap with their $50k-$250k band","geography":"both in miami","thesis_recency":"most recent public activity is 167 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[1529],"sector":[1529,1530],"check_size":[1529],"geography":[],"thesis_recency":[1529],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":5,"thesis_recency":4,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"Early-stage consumer brands with real unit economics\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":1529,"area":"thesis","kind":"thesis_statement","url":"https://tidewater.vc","title":"Talia Novak stated thesis","excerpt":"Early-stage consumer brands with real unit economics. We care about average order value, repeat rate and contribution margin before we care about the story."}]},{"id":5,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Daniel,","body":"I ran high-volume restaurant operations in New York before starting Prime After Dark. Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":86,"novelty":5.0,"variant":"cred_nyc_ops|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"prior_company","checks":15,"passed":true,"investor":{"name":"Daniel Haddad","email":"daniel.haddad@rivermark.vc","role":"founding_partner","firm":"Rivermark Capital Partners","city":"Miami","tz":"America/New_York","stages":["seed"],"sectors":["Consumer Brands","CPG","Food"],"check_min":1000000.0,"check_max":3000000.0},"fit":{"composite":4.17,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention brickell, consumer, food, ghost","check_size":"partial overlap with their $1M-$3M band","geography":"both in miami","thesis_recency":"most recent public activity is 139 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[1561],"sector":[1561,1562],"check_size":[1561],"geography":[],"thesis_recency":[1561],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":5,"thesis_recency":4,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":1561,"area":"thesis","kind":"thesis_statement","url":"https://rivermark.vc","title":"Daniel Haddad stated thesis","excerpt":"We invest in Miami consumer companies. Nightlife, hospitality and food are the categories this city exports, and we fund founders building in them."}]},{"id":6,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Aisha,","body":"Our operating team comes out of New York premium kitchens, not out of a delivery app. Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":89,"novelty":5.0,"variant":"cred_kitchen_team|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"domain_expertise","checks":15,"passed":true,"investor":{"name":"Aisha Chen","email":"aisha.chen@fifthharbor.vc","role":"managing_partner","firm":"Fifth Harbor Partners","city":"Miami Beach","tz":"America/New_York","stages":["seed"],"sectors":["Restaurant Technology","Vertical SaaS","Hospitality"],"check_min":100000.0,"check_max":500000.0},"fit":{"composite":4.17,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention beverage, consumer, food, hospitality","check_size":"partial overlap with their $100k-$500k band","geography":"both in miami","thesis_recency":"most recent public activity is 168 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[2113],"sector":[2113,2114],"check_size":[2113],"geography":[],"thesis_recency":[2113],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":5,"thesis_recency":4,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":2113,"area":"thesis","kind":"thesis_statement","url":"https://fifthharbor.vc","title":"Aisha Chen stated thesis","excerpt":"We back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators who have actually run kitchens."}]},{"id":7,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Grace,","body":"I ran high-volume restaurant operations in New York before starting Prime After Dark. Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":86,"novelty":5.0,"variant":"cred_nyc_ops|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"prior_company","checks":15,"passed":true,"investor":{"name":"Grace Sharma","email":"grace.sharma@tidewater.vc","role":"founding_partner","firm":"Tidewater Capital","city":"Miami","tz":"America/New_York","stages":["series_a","series_b"],"sectors":["Restaurant Technology","Vertical SaaS","Hospitality"],"check_min":100000.0,"check_max":500000.0},"fit":{"composite":4.0,"rationales":{"stage":"adjacent stage focus (series_a, series_b)","sector":"thesis and evidence mention beverage, consumer, food, hospitality","check_size":"partial overlap with their $100k-$500k band","geography":"both in miami","thesis_recency":"most recent public activity is 67 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[1169],"sector":[1169,1170],"check_size":[1169],"geography":[],"thesis_recency":[1169],"portfolio_conflict":[]},"scores":{"stage":3,"sector":3,"check_size":3,"geography":5,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":1169,"area":"thesis","kind":"thesis_statement","url":"https://tidewater.vc","title":"Grace Sharma stated thesis","excerpt":"We back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators who have actually run kitchens."}]},{"id":8,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Iris,","body":"I ran high-volume restaurant operations in New York before starting Prime After Dark. Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":86,"novelty":5.0,"variant":"cred_nyc_ops|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"prior_company","checks":15,"passed":true,"investor":{"name":"Iris Lindqvist","email":"iris.lindqvist@tidewater.vc","role":"managing_partner","firm":"Tidewater Capital","city":"Miami","tz":"America/New_York","stages":["series_a","series_b"],"sectors":["Restaurant Technology","Vertical SaaS","Hospitality"],"check_min":100000.0,"check_max":500000.0},"fit":{"composite":4.0,"rationales":{"stage":"adjacent stage focus (series_a, series_b)","sector":"thesis and evidence mention beverage, consumer, delivery, food","check_size":"partial overlap with their $100k-$500k band","geography":"both in miami","thesis_recency":"most recent public activity is 23 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[1501],"sector":[1501,1502],"check_size":[1501],"geography":[],"thesis_recency":[1501],"portfolio_conflict":[]},"scores":{"stage":3,"sector":3,"check_size":3,"geography":5,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":1501,"area":"thesis","kind":"thesis_statement","url":"https://tidewater.vc","title":"Iris Lindqvist stated thesis","excerpt":"We back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators who have actually run kitchens."}]},{"id":9,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Daniel,","body":"Our Brickell soft launch confirmed real demand for premium food after midnight. Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":85,"novelty":5.0,"variant":"cred_soft_launch|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"traction_metric","checks":15,"passed":true,"investor":{"name":"Daniel Farrell","email":"daniel.farrell@larkspur.vc","role":"venture_partner","firm":"Larkspur Capital","city":"San Francisco","tz":"America/Los_Angeles","stages":["seed","series_a"],"sectors":["Hospitality","Consumer","Franchise"],"check_min":250000.0,"check_max":1500000.0},"fit":{"composite":3.83,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention brickell, consumer, delivery, franchise","check_size":"partial overlap with their $250k-$1.5M band","geography":"investor is in united states san francisco, startup in miami","thesis_recency":"most recent public activity is 47 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[81],"sector":[81,82],"check_size":[81],"geography":[],"thesis_recency":[81],"portfolio_conflict":[]},"scores":{"stage":5,"sector":4,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":81,"area":"thesis","kind":"thesis_statement","url":"https://larkspur.vc","title":"Daniel Farrell stated thesis","excerpt":"Our focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath them."}]},{"id":10,"touch":1,"subject":"Prime After Dark \u2014 fastest-growing daypart, unserved","greeting":"Hi Ana,","body":"Our Brickell soft launch confirmed real demand for premium food after midnight. Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.\n\nLate night is the fastest-growing daypart in food delivery, up 7.5% year over year, and no premium operator serves it.\n\nWe operate only from 12AM to 4:30AM, so we own the window when every premium competitor is closed.\n\nOpen to a short call in the next week or two if this is relevant.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":98,"novelty":5.0,"variant":"cred_soft_launch|problem_open_daypart|approach_night_only|ask_quick_call","ask_type":"quick_call_in_next_week_or_two","marker":"traction_metric","checks":15,"passed":true,"investor":{"name":"Ana Moreau","email":"ana.moreau@tidewater.vc","role":"angel","firm":"Tidewater Capital","city":"Miami","tz":"America/New_York","stages":["series_a","series_b"],"sectors":["Restaurant Technology","Vertical SaaS","Hospitality"],"check_min":100000.0,"check_max":500000.0},"fit":{"composite":3.83,"rationales":{"stage":"adjacent stage focus (series_a, series_b)","sector":"thesis and evidence mention beverage, consumer, food, hospitality","check_size":"partial overlap with their $100k-$500k band","geography":"both in miami","thesis_recency":"most recent public activity is 108 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[373],"sector":[373,374],"check_size":[373],"geography":[],"thesis_recency":[373],"portfolio_conflict":[]},"scores":{"stage":3,"sector":3,"check_size":3,"geography":5,"thesis_recency":4,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":373,"area":"thesis","kind":"thesis_statement","url":"https://tidewater.vc","title":"Ana Moreau stated thesis","excerpt":"We back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators who have actually run kitchens."}]},{"id":11,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Felix,","body":"Our advisors scale ghost kitchens and run hospitality logistics in Miami. Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":84,"novelty":5.0,"variant":"cred_advisors|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"notable_advisor","checks":15,"passed":true,"investor":{"name":"Felix Weber","email":"felix.weber@alder.vc","role":"managing_partner","firm":"Alder Venture Partners","city":"Miami Beach","tz":"America/New_York","stages":["series_a","series_b"],"sectors":["Consumer Brands","CPG","Food"],"check_min":100000.0,"check_max":500000.0},"fit":{"composite":3.83,"rationales":{"stage":"adjacent stage focus (series_a, series_b)","sector":"thesis and evidence mention consumer, food, ghost, hospitality","check_size":"partial overlap with their $100k-$500k band","geography":"both in miami","thesis_recency":"most recent public activity is 100 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[1361],"sector":[1361,1362],"check_size":[1361],"geography":[],"thesis_recency":[1361],"portfolio_conflict":[]},"scores":{"stage":3,"sector":3,"check_size":3,"geography":5,"thesis_recency":4,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":1361,"area":"thesis","kind":"thesis_statement","url":"https://alder.vc","title":"Felix Weber stated thesis","excerpt":"We invest in Miami consumer companies. Nightlife, hospitality and food are the categories this city exports, and we fund founders building in them."}]},{"id":12,"touch":1,"subject":"Prime After Dark \u2014 restaurants go dark at peak","greeting":"Hi Hugo,","body":"Our Brickell soft launch confirmed real demand for premium food after midnight. Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.\n\nEvery top Miami restaurant is dark before midnight, which is exactly when the city's nightlife peaks.\n\nRecipes and packaging are engineered for delivery, so a steakhouse-quality protein still arrives intact at 2AM.\n\nHappy to send the deck if that is useful.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":86,"novelty":5.0,"variant":"cred_soft_launch|problem_dark_kitchens|approach_delivery_engineered|ask_deck","ask_type":"deck_offer","marker":"traction_metric","checks":15,"passed":true,"investor":{"name":"Hugo Moreau","email":"hugo.moreau@alder.vc","role":"partner","firm":"Alder Venture Partners","city":"Miami Beach","tz":"America/New_York","stages":["series_a","series_b"],"sectors":["Consumer Brands","CPG","Food"],"check_min":100000.0,"check_max":500000.0},"fit":{"composite":3.83,"rationales":{"stage":"adjacent stage focus (series_a, series_b)","sector":"thesis and evidence mention consumer, food, ghost, hospitality","check_size":"partial overlap with their $100k-$500k band","geography":"both in miami","thesis_recency":"most recent public activity is 92 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[1701],"sector":[1701,1702],"check_size":[1701],"geography":[],"thesis_recency":[1701],"portfolio_conflict":[]},"scores":{"stage":3,"sector":3,"check_size":3,"geography":5,"thesis_recency":4,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":1701,"area":"thesis","kind":"thesis_statement","url":"https://alder.vc","title":"Hugo Moreau stated thesis","excerpt":"We invest in Miami consumer companies. Nightlife, hospitality and food are the categories this city exports, and we fund founders building in them."}]},{"id":13,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Jonas,","body":"I ran high-volume restaurant operations in New York before starting Prime After Dark. Your stated thesis \u2014 \"Early-stage consumer brands with real unit economics\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":77,"novelty":5.0,"variant":"cred_nyc_ops|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"prior_company","checks":15,"passed":true,"investor":{"name":"Jonas Nguyen","email":"jonas.nguyen@larkspur.vc","role":"managing_partner","firm":"Larkspur Ventures","city":"West Palm Beach","tz":"America/New_York","stages":["seed"],"sectors":["Food & Beverage","Restaurant Tech","Consumer"],"check_min":500000.0,"check_max":2000000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention beverage, consumer, food, hospitality","check_size":"partial overlap with their $500k-$2M band","geography":"investor is in united states west palm beach, startup in miami","thesis_recency":"most recent public activity is 83 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[129],"sector":[129,130],"check_size":[129],"geography":[],"thesis_recency":[129],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"Early-stage consumer brands with real unit economics\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":129,"area":"thesis","kind":"thesis_statement","url":"https://larkspur.vc","title":"Jonas Nguyen stated thesis","excerpt":"Early-stage consumer brands with real unit economics. We care about average order value, repeat rate and contribution margin before we care about the story."}]},{"id":14,"touch":1,"subject":"Prime After Dark \u2014 fastest-growing daypart, unserved","greeting":"Hi Grace,","body":"We have letters of intent in progress with a major Brickell hotel and corporate partners. Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.\n\nLate night is the fastest-growing daypart in food delivery, up 7.5% year over year, and no premium operator serves it.\n\nWe operate only from 12AM to 4:30AM, so we own the window when every premium competitor is closed.\n\nOpen to a short call in the next week or two if this is relevant.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":101,"novelty":5.0,"variant":"cred_hotel_lois|problem_open_daypart|approach_night_only|ask_quick_call","ask_type":"quick_call_in_next_week_or_two","marker":"named_customer","checks":15,"passed":true,"investor":{"name":"Grace Kowalski","email":"grace.kowalski@kestrel.vc","role":"general_partner","firm":"Kestrel Capital Partners","city":"New York","tz":"America/New_York","stages":["seed","series_a"],"sectors":["Ghost Kitchens","Food Delivery","Logistics"],"check_min":100000.0,"check_max":500000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention delivery, food, ghost, hospitality","check_size":"partial overlap with their $100k-$500k band","geography":"investor is in united states new york, startup in miami","thesis_recency":"most recent public activity is 64 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[149],"sector":[149,150],"check_size":[149],"geography":[],"thesis_recency":[149],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":149,"area":"thesis","kind":"thesis_statement","url":"https://kestrel.vc","title":"Grace Kowalski stated thesis","excerpt":"Our focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath them."}]},{"id":15,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Ruth,","body":"Our operating team comes out of New York premium kitchens, not out of a delivery app. Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":89,"novelty":5.0,"variant":"cred_kitchen_team|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"domain_expertise","checks":15,"passed":true,"investor":{"name":"Ruth Berger","email":"ruth.berger@foundryrow.vc","role":"managing_partner","firm":"Foundry Row Capital Partners","city":"New York","tz":"America/New_York","stages":["seed","series_a"],"sectors":["Hospitality","Consumer","Franchise"],"check_min":250000.0,"check_max":1500000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention consumer, delivery, franchise, ghost","check_size":"partial overlap with their $250k-$1.5M band","geography":"investor is in united states new york, startup in miami","thesis_recency":"most recent public activity is 107 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[197],"sector":[197,198],"check_size":[197],"geography":[],"thesis_recency":[197],"portfolio_conflict":[]},"scores":{"stage":5,"sector":4,"check_size":3,"geography":1,"thesis_recency":4,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":197,"area":"thesis","kind":"thesis_statement","url":"https://foundryrow.vc","title":"Ruth Berger stated thesis","excerpt":"Our focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath them."}]},{"id":16,"touch":1,"subject":"Prime After Dark \u2014 fastest-growing daypart, unserved","greeting":"Hi Kenji,","body":"Our operating team comes out of New York premium kitchens, not out of a delivery app. Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.\n\nLate night is the fastest-growing daypart in food delivery, up 7.5% year over year, and no premium operator serves it.\n\nWe operate only from 12AM to 4:30AM, so we own the window when every premium competitor is closed.\n\nOpen to a short call in the next week or two if this is relevant.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":102,"novelty":5.0,"variant":"cred_kitchen_team|problem_open_daypart|approach_night_only|ask_quick_call","ask_type":"quick_call_in_next_week_or_two","marker":"domain_expertise","checks":15,"passed":true,"investor":{"name":"Kenji Kaur","email":"kenji.kaur@copperbeach.vc","role":"general_partner","firm":"Copper Beach Capital","city":"Seattle","tz":"America/Los_Angeles","stages":["seed","series_a"],"sectors":["Hospitality","Consumer","Franchise"],"check_min":1000000.0,"check_max":3000000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention beverage, brickell, consumer, delivery","check_size":"partial overlap with their $1M-$3M band","geography":"investor is in united states seattle, startup in miami","thesis_recency":"most recent public activity is 54 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[221],"sector":[221,222],"check_size":[221],"geography":[],"thesis_recency":[221],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":221,"area":"thesis","kind":"thesis_statement","url":"https://copperbeach.vc","title":"Kenji Kaur stated thesis","excerpt":"We back consumer food and beverage brands at pre-seed and seed, with a strong preference for operators who have actually run kitchens."}]},{"id":17,"touch":1,"subject":"Prime After Dark \u2014 restaurants go dark at peak","greeting":"Hi Fatima,","body":"We have letters of intent in progress with a major Brickell hotel and corporate partners. Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.\n\nEvery top Miami restaurant is dark before midnight, which is exactly when the city's nightlife peaks.\n\nRecipes and packaging are engineered for delivery, so a steakhouse-quality protein still arrives intact at 2AM.\n\nHappy to send the deck if that is useful.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":89,"novelty":5.0,"variant":"cred_hotel_lois|problem_dark_kitchens|approach_delivery_engineered|ask_deck","ask_type":"deck_offer","marker":"named_customer","checks":15,"passed":true,"investor":{"name":"Fatima Dubois","email":"fatima.dubois@tidewater.vc","role":"managing_partner","firm":"Tidewater Labs","city":"New York","tz":"America/New_York","stages":["seed","series_a"],"sectors":["Hospitality","Consumer","Franchise"],"check_min":50000.0,"check_max":250000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention consumer, food, franchise, ghost","check_size":"partial overlap with their $50k-$250k band","geography":"investor is in united states new york, startup in miami","thesis_recency":"most recent public activity is 11 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[441],"sector":[441,442],"check_size":[441],"geography":[],"thesis_recency":[441],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":441,"area":"thesis","kind":"thesis_statement","url":"https://tidewater.vc","title":"Fatima Dubois stated thesis","excerpt":"We invest in Miami consumer companies. Nightlife, hospitality and food are the categories this city exports, and we fund founders building in them."}]},{"id":18,"touch":1,"subject":"Prime After Dark \u2014 restaurants go dark at peak","greeting":"Hi Omar,","body":"We have letters of intent in progress with a major Brickell hotel and corporate partners. Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.\n\nEvery top Miami restaurant is dark before midnight, which is exactly when the city's nightlife peaks.\n\nRecipes and packaging are engineered for delivery, so a steakhouse-quality protein still arrives intact at 2AM.\n\nHappy to send the deck if that is useful.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":89,"novelty":5.0,"variant":"cred_hotel_lois|problem_dark_kitchens|approach_delivery_engineered|ask_deck","ask_type":"deck_offer","marker":"named_customer","checks":15,"passed":true,"investor":{"name":"Omar Baumann","email":"omar.baumann@grovelane.vc","role":"partner","firm":"Grove Lane Capital","city":"Austin","tz":"America/Chicago","stages":["pre_seed","seed"],"sectors":["Consumer Brands","CPG","Food"],"check_min":250000.0,"check_max":1000000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention consumer, food, ghost, hospitality","check_size":"partial overlap with their $250k-$1M band","geography":"investor is in united states austin, startup in miami","thesis_recency":"most recent public activity is 73 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[493],"sector":[493,494],"check_size":[493],"geography":[],"thesis_recency":[493],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":493,"area":"thesis","kind":"thesis_statement","url":"https://grovelane.vc","title":"Omar Baumann stated thesis","excerpt":"We invest in Miami consumer companies. Nightlife, hospitality and food are the categories this city exports, and we fund founders building in them."}]},{"id":19,"touch":1,"subject":"Prime After Dark \u2014 fastest-growing daypart, unserved","greeting":"Hi Freya,","body":"Our Brickell soft launch confirmed real demand for premium food after midnight. Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.\n\nLate night is the fastest-growing daypart in food delivery, up 7.5% year over year, and no premium operator serves it.\n\nWe operate only from 12AM to 4:30AM, so we own the window when every premium competitor is closed.\n\nOpen to a short call in the next week or two if this is relevant.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":98,"novelty":5.0,"variant":"cred_soft_launch|problem_open_daypart|approach_night_only|ask_quick_call","ask_type":"quick_call_in_next_week_or_two","marker":"traction_metric","checks":15,"passed":true,"investor":{"name":"Freya Mbeki","email":"freya.mbeki@larkspur.vc","role":"managing_partner","firm":"Larkspur Capital","city":"San Francisco","tz":"America/Los_Angeles","stages":["seed","series_a"],"sectors":["Hospitality","Consumer","Franchise"],"check_min":250000.0,"check_max":1500000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention brickell, consumer, delivery, franchise","check_size":"partial overlap with their $250k-$1.5M band","geography":"investor is in united states san francisco, startup in miami","thesis_recency":"most recent public activity is 118 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[593],"sector":[593,594],"check_size":[593],"geography":[],"thesis_recency":[593],"portfolio_conflict":[]},"scores":{"stage":5,"sector":4,"check_size":3,"geography":1,"thesis_recency":4,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":593,"area":"thesis","kind":"thesis_statement","url":"https://larkspur.vc","title":"Freya Mbeki stated thesis","excerpt":"Our focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath them."}]},{"id":20,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Nils,","body":"Our advisors scale ghost kitchens and run hospitality logistics in Miami. Your stated thesis \u2014 \"fund multi-unit and franchise-ready food concepts that can replicate a playbook across corridors without heavy capex\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":84,"novelty":5.0,"variant":"cred_advisors|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"notable_advisor","checks":15,"passed":true,"investor":{"name":"Nils Farrell","email":"nils.farrell@beaconridge.vc","role":"angel","firm":"Beacon Ridge Partners","city":"Fort Lauderdale","tz":"America/New_York","stages":["pre_seed","seed"],"sectors":["Hospitality","Consumer","Franchise"],"check_min":1000000.0,"check_max":3000000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention consumer, delivery, food, franchise","check_size":"partial overlap with their $1M-$3M band","geography":"investor is in united states fort lauderdale, startup in miami","thesis_recency":"most recent public activity is 36 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[677],"sector":[677,678],"check_size":[677],"geography":[],"thesis_recency":[677],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"fund multi-unit and franchise-ready food concepts that can replicate a playbook across corridors without heavy capex\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":677,"area":"thesis","kind":"thesis_statement","url":"https://beaconridge.vc","title":"Nils Farrell stated thesis","excerpt":"We fund multi-unit and franchise-ready food concepts that can replicate a playbook across corridors without heavy capex."}]},{"id":21,"touch":1,"subject":"Prime After Dark \u2014 fastest-growing daypart, unserved","greeting":"Hi Leah,","body":"Our operating team comes out of New York premium kitchens, not out of a delivery app. Your stated thesis \u2014 \"fund multi-unit and franchise-ready food concepts that can replicate a playbook across corridors without heavy capex\" \u2014 is why I am writing to you rather than mass-mailing.\n\nLate night is the fastest-growing daypart in food delivery, up 7.5% year over year, and no premium operator serves it.\n\nWe operate only from 12AM to 4:30AM, so we own the window when every premium competitor is closed.\n\nOpen to a short call in the next week or two if this is relevant.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":102,"novelty":5.0,"variant":"cred_kitchen_team|problem_open_daypart|approach_night_only|ask_quick_call","ask_type":"quick_call_in_next_week_or_two","marker":"domain_expertise","checks":15,"passed":true,"investor":{"name":"Leah Sharma","email":"leah.sharma@alder.vc","role":"principal","firm":"Alder Labs","city":"San Francisco","tz":"America/Los_Angeles","stages":["pre_seed","seed"],"sectors":["Ghost Kitchens","Food Delivery","Logistics"],"check_min":1000000.0,"check_max":3000000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention delivery, food, franchise, ghost","check_size":"partial overlap with their $1M-$3M band","geography":"investor is in united states san francisco, startup in miami","thesis_recency":"most recent public activity is 109 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[829],"sector":[829,830],"check_size":[829],"geography":[],"thesis_recency":[829],"portfolio_conflict":[]},"scores":{"stage":5,"sector":4,"check_size":3,"geography":1,"thesis_recency":4,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"fund multi-unit and franchise-ready food concepts that can replicate a playbook across corridors without heavy capex\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":829,"area":"thesis","kind":"thesis_statement","url":"https://alder.vc","title":"Leah Sharma stated thesis","excerpt":"We fund multi-unit and franchise-ready food concepts that can replicate a playbook across corridors without heavy capex."}]},{"id":22,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi WEI,","body":"We have letters of intent in progress with a major Brickell hotel and corporate partners. Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":88,"novelty":5.0,"variant":"cred_hotel_lois|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"named_customer","checks":15,"passed":true,"investor":{"name":"WEI SILVA","email":"wei.silva@cedarpoint.vc","role":"founding_partner","firm":"Cedar Point Partners","city":"Chicago","tz":"America/Chicago","stages":["seed","series_a"],"sectors":["Ghost Kitchens","Food Delivery","Logistics"],"check_min":250000.0,"check_max":1500000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention delivery, food, ghost, hospitality","check_size":"partial overlap with their $250k-$1.5M band","geography":"investor is in united states chicago, startup in miami","thesis_recency":"most recent public activity is 36 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[917],"sector":[917,918],"check_size":[917],"geography":[],"thesis_recency":[917],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":917,"area":"thesis","kind":"thesis_statement","url":"https://cedarpoint.vc","title":"Wei Silva stated thesis","excerpt":"Our focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath them."}]},{"id":23,"touch":1,"subject":"Prime After Dark \u2014 the 70,000-resident quality gap","greeting":"Hi Ade,","body":"Our operating team comes out of New York premium kitchens, not out of a delivery app. Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.\n\nAfter midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.\n\nWe run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.\n\nWorth me sending a one-page summary?","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":89,"novelty":5.0,"variant":"cred_kitchen_team|problem_quality_gap|approach_zero_capex|ask_share_more","ask_type":"offer_to_share_more","marker":"domain_expertise","checks":15,"passed":true,"investor":{"name":"Ade Berger","email":"ade.berger@bluemeridian.vc","role":"principal","firm":"Blue Meridian Capital","city":"West Palm Beach","tz":"America/New_York","stages":["pre_seed","seed"],"sectors":["Restaurant Technology","Vertical SaaS","Hospitality"],"check_min":50000.0,"check_max":250000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention consumer, food, hospitality, kitchens","check_size":"partial overlap with their $50k-$250k band","geography":"investor is in united states west palm beach, startup in miami","thesis_recency":"most recent public activity is 76 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[949],"sector":[949,950],"check_size":[949],"geography":[],"thesis_recency":[949],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"Nightlife, hospitality and food are the categories this city exports, and we fund founders building in\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":949,"area":"thesis","kind":"thesis_statement","url":"https://bluemeridian.vc","title":"Ade Berger stated thesis","excerpt":"We invest in Miami consumer companies. Nightlife, hospitality and food are the categories this city exports, and we fund founders building in them."}]},{"id":24,"touch":1,"subject":"Prime After Dark \u2014 fastest-growing daypart, unserved","greeting":"Hi Clara,","body":"Our Brickell soft launch confirmed real demand for premium food after midnight. Your stated thesis \u2014 \"fund multi-unit and franchise-ready food concepts that can replicate a playbook across corridors without heavy capex\" \u2014 is why I am writing to you rather than mass-mailing.\n\nLate night is the fastest-growing daypart in food delivery, up 7.5% year over year, and no premium operator serves it.\n\nWe operate only from 12AM to 4:30AM, so we own the window when every premium competitor is closed.\n\nOpen to a short call in the next week or two if this is relevant.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":98,"novelty":5.0,"variant":"cred_soft_launch|problem_open_daypart|approach_night_only|ask_quick_call","ask_type":"quick_call_in_next_week_or_two","marker":"traction_metric","checks":15,"passed":true,"investor":{"name":"Clara Ramirez","email":"clara.ramirez@hollowcreek.vc","role":"general_partner","firm":"Hollow Creek Capital","city":"Toronto","tz":"America/Toronto","stages":["seed"],"sectors":["Ghost Kitchens","Food Delivery","Logistics"],"check_min":50000.0,"check_max":250000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention brickell, delivery, food, franchise","check_size":"partial overlap with their $50k-$250k band","geography":"investor is in canada toronto, startup in miami","thesis_recency":"most recent public activity is 14 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[981],"sector":[981,982],"check_size":[981],"geography":[],"thesis_recency":[981],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"fund multi-unit and franchise-ready food concepts that can replicate a playbook across corridors without heavy capex\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":981,"area":"thesis","kind":"thesis_statement","url":"https://hollowcreek.vc","title":"Clara Ramirez stated thesis","excerpt":"We fund multi-unit and franchise-ready food concepts that can replicate a playbook across corridors without heavy capex."}]},{"id":25,"touch":1,"subject":"Prime After Dark \u2014 restaurants go dark at peak","greeting":"Hi Lucas,","body":"We have letters of intent in progress with a major Brickell hotel and corporate partners. Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.\n\nEvery top Miami restaurant is dark before midnight, which is exactly when the city's nightlife peaks.\n\nRecipes and packaging are engineered for delivery, so a steakhouse-quality protein still arrives intact at 2AM.\n\nHappy to send the deck if that is useful.","footer":"Josh, Prime After Dark\nPrime After Dark LLC, 1 Example Way, Miami, FL 33131\nReply 'unsubscribe' and I will not contact you again.","words":89,"novelty":5.0,"variant":"cred_hotel_lois|problem_dark_kitchens|approach_delivery_engineered|ask_deck","ask_type":"deck_offer","marker":"named_customer","checks":15,"passed":true,"investor":{"name":"Lucas Petrov","email":"lucas.petrov@pinemark.vc","role":"managing_partner","firm":"Pinemark Venture Partners","city":"Coral Gables","tz":"America/New_York","stages":["seed"],"sectors":["Restaurant Technology","Vertical SaaS","Hospitality"],"check_min":100000.0,"check_max":500000.0},"fit":{"composite":3.67,"rationales":{"stage":"invests at seed","sector":"thesis and evidence mention delivery, ghost, hospitality, kitchen","check_size":"partial overlap with their $100k-$500k band","geography":"investor is in united states coral gables, startup in miami","thesis_recency":"most recent public activity is 84 days old","portfolio_conflict":"no competing portfolio company found in evidence"},"cited":{"stage":[1037],"sector":[1037,1038],"check_size":[1037],"geography":[],"thesis_recency":[1037],"portfolio_conflict":[]},"scores":{"stage":5,"sector":3,"check_size":3,"geography":1,"thesis_recency":5,"portfolio_conflict":5}},"claims":[{"text":"Your stated thesis \u2014 \"focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath\" \u2014 is why I am writing to you rather than mass-mailing.","evidence_id":1037,"area":"thesis","kind":"thesis_statement","url":"https://pinemark.vc","title":"Lucas Petrov stated thesis","excerpt":"Our focus is the restaurant and hospitality stack: delivery, ghost kitchens, virtual brands and the logistics underneath them."}]}],"suppressed":[{"name":"Amara Alvarez","firm":"Northaven Ventures","companies":["Kitchen United"],"composite":3.67},{"name":"Ana Novak","firm":"Rivermark Ventures","companies":["Wonder"],"composite":2.33},{"name":"Omar Okafor","firm":"Windward Ventures","companies":["CloudKitchens"],"composite":2.17},{"name":"Ravi Baumann","firm":"Marlow Ventures","companies":["Local Kitchens"],"composite":2.17},{"name":"Marcus Baumann","firm":"Windward Capital","companies":["REEF Technology"],"composite":2.0},{"name":"Hugo Andersen","firm":"Lantern Labs","companies":["Wonder"],"composite":1.67},{"name":"Jonas Iqbal","firm":"Rivermark Ventures","companies":["Wonder"],"composite":2.17},{"name":"Zoe Moreau","firm":"Northaven Ventures","companies":["Kitchen United"],"composite":3.67}],"variants":[{"slot":"credibility","key":"cred_nyc_ops","label":"NYC restaurant operations","text":"I ran high-volume restaurant operations in New York before starting Prime After Dark.","marker":"prior_company","ask":null},{"slot":"credibility","key":"cred_kitchen_team","label":"premium kitchen team","text":"Our operating team comes out of New York premium kitchens, not out of a delivery app.","marker":"domain_expertise","ask":null},{"slot":"credibility","key":"cred_hotel_lois","label":"Brickell hotel and corporate LOIs","text":"We have letters of intent in progress with a major Brickell hotel and corporate partners.","marker":"named_customer","ask":null},{"slot":"credibility","key":"cred_soft_launch","label":"soft launch validation","text":"Our Brickell soft launch confirmed real demand for premium food after midnight.","marker":"traction_metric","ask":null},{"slot":"credibility","key":"cred_advisors","label":"Miami hospitality advisors","text":"Our advisors scale ghost kitchens and run hospitality logistics in Miami.","marker":"notable_advisor","ask":null},{"slot":"problem","key":"problem_dark_kitchens","label":"restaurants go dark at peak","text":"Every top Miami restaurant is dark before midnight, which is exactly when the city's nightlife peaks.","marker":null,"ask":null},{"slot":"problem","key":"problem_quality_gap","label":"the 70,000-resident quality gap","text":"After midnight, 70,000+ high-income Brickell residents choose between fast food and inconsistent ghost kitchens.","marker":null,"ask":null},{"slot":"problem","key":"problem_open_daypart","label":"fastest-growing daypart, unserved","text":"Late night is the fastest-growing daypart in food delivery, up 7.5% year over year, and no premium operator serves it.","marker":null,"ask":null},{"slot":"approach","key":"approach_night_only","label":"12AM-4:30AM only","text":"We operate only from 12AM to 4:30AM, so we own the window when every premium competitor is closed.","marker":null,"ask":null},{"slot":"approach","key":"approach_delivery_engineered","label":"engineered for the ride","text":"Recipes and packaging are engineered for delivery, so a steakhouse-quality protein still arrives intact at 2AM.","marker":null,"ask":null},{"slot":"approach","key":"approach_zero_capex","label":"zero restaurant capex","text":"We run out of ghost kitchens with no restaurant capex, so each new corridor launches in weeks rather than quarters.","marker":null,"ask":null},{"slot":"ask","key":"ask_share_more","label":"offer to share more","text":"Worth me sending a one-page summary?","marker":null,"ask":"offer_to_share_more"},{"slot":"ask","key":"ask_deck","label":"deck offer","text":"Happy to send the deck if that is useful.","marker":null,"ask":"deck_offer"},{"slot":"ask","key":"ask_quick_call","label":"quick call in next week or two","text":"Open to a short call in the next week or two if this is relevant.","marker":null,"ask":"quick_call_in_next_week_or_two"}],"updates":[{"headline":"Brickell hotel LOI","body":"Our first Brickell hotel letter of intent is in progress, alongside two corporate partners, for in-room late-night delivery.","category":"partnership","on":"2026-07-22"},{"headline":"Pre-launch waitlist","body":"The pre-launch waitlist is still growing without any paid acquisition behind it.","category":"traction","on":"2026-07-09"},{"headline":"Soft launch results","body":"Soft launch data confirmed demand for premium delivery inside the 12AM to 4:30AM window.","category":"metric","on":"2026-06-25"}]}</script>
+
+<script>
+(function () {
+  "use strict";
+
+  var D = JSON.parse(document.getElementById("payload").textContent);
+  var STORE = "pad-review-v1";
+  var state = load();
+  var filter = "all";
+  var current = D.drafts.length ? D.drafts[0].id : null;
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORE)) || { who: "", by: {} }; }
+    catch (e) { return { who: "", by: {} }; }
+  }
+  function save() {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) { /* private mode */ }
+  }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function money(n) {
+    if (n == null) return "—";
+    return n >= 1e6 ? "$" + (n / 1e6).toFixed(n % 1e6 ? 1 : 0) + "M" : "$" + Math.round(n / 1e3) + "k";
+  }
+  function decisionOf(id) { return (state.by[id] || {}).decision || null; }
+  function noteOf(id) { return (state.by[id] || {}).note || ""; }
+
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("on");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.classList.remove("on"); }, 2600);
+  }
+
+  /* ---------------- stats ---------------- */
+
+  function counts() {
+    var c = { approve: 0, rework: 0, reject: 0, undecided: 0 };
+    D.drafts.forEach(function (d) {
+      var v = decisionOf(d.id);
+      if (v) c[v]++; else c.undecided++;
+    });
+    return c;
+  }
+
+  function renderStrip() {
+    var f = D.funnel, c = counts();
+    var cells = [
+      { k: "investors scored", v: f.targets_scored },
+      { k: "qualified", v: f.targets_qualified },
+      { k: "dropped · thesis", v: f.targets_dropped_low_fit },
+      { k: "suppressed · conflict", v: f.targets_suppressed_conflict },
+      { k: "drafts in queue", v: D.drafts.length, accent: true },
+      { k: "approved by you", v: c.approve, accent: true },
+      { k: "still undecided", v: c.undecided }
+    ];
+    document.getElementById("strip").innerHTML = cells.map(function (s) {
+      return '<div class="stat' + (s.accent ? " accent" : "") + '">' +
+             '<div class="v num">' + s.v + "</div><div class=\"k\">" + esc(s.k) + "</div></div>";
+    }).join("");
+  }
+
+  /* ---------------- queue ---------------- */
+
+  var FILTERS = [
+    ["all", "All"], ["undecided", "Undecided"], ["approve", "Approved"],
+    ["rework", "Needs work"], ["reject", "Rejected"]
+  ];
+
+  function visible() {
+    return D.drafts.filter(function (d) {
+      var v = decisionOf(d.id);
+      if (filter === "all") return true;
+      if (filter === "undecided") return !v;
+      return v === filter;
+    });
+  }
+
+  function renderFilters() {
+    var c = counts();
+    document.getElementById("filters").innerHTML = FILTERS.map(function (f) {
+      var n = f[0] === "all" ? D.drafts.length : c[f[0]];
+      return '<button type="button" data-f="' + f[0] + '" aria-pressed="' +
+             (filter === f[0]) + '">' + f[1] + " " + n + "</button>";
+    }).join("");
+  }
+
+  function renderQueue() {
+    var rows = visible();
+    document.getElementById("qlist").innerHTML = rows.map(function (d) {
+      var dec = decisionOf(d.id);
+      return '<li><button class="qitem" type="button" data-id="' + d.id + '"' +
+        (dec ? ' data-decision="' + dec + '"' : "") +
+        ' aria-current="' + (d.id === current) + '">' +
+        '<span class="state" aria-hidden="true"></span>' +
+        "<span><span class=\"nm\">" + esc(d.investor.name) + "</span><br>" +
+        '<span class="sub">' + esc(d.investor.firm || "") + "</span></span>" +
+        '<span class="fit num">' + d.fit.composite.toFixed(2) + "</span>" +
+        "</button></li>";
+    }).join("") || '<li style="padding:1rem;color:var(--haze);font-size:.85rem">Nothing in this filter.</li>';
+  }
+
+  /* ---------------- detail ---------------- */
+
+  function bar(score) {
+    var out = "";
+    for (var i = 1; i <= 5; i++) {
+      out += '<i class="' + (i <= score ? "on" + (score <= 2 ? " low" : "") : "") + '"></i>';
+    }
+    return out;
+  }
+
+  var DIM_LABELS = {
+    stage: "stage", sector: "sector", check_size: "check size",
+    geography: "geography", thesis_recency: "thesis recency", portfolio_conflict: "conflict"
+  };
+
+  function highlightHook(body, claims) {
+    var html = esc(body);
+    claims.forEach(function (c) {
+      if (!c.text) return;
+      var needle = esc(c.text);
+      if (html.indexOf(needle) >= 0) {
+        html = html.split(needle).join("<mark>" + needle + "</mark>");
+      }
+    });
+    return html;
+  }
+
+  function renderDetail() {
+    var d = D.drafts.filter(function (x) { return x.id === current; })[0];
+    var el = document.getElementById("detail");
+    if (!d) { el.innerHTML = ""; return; }
+    var inv = d.investor, dec = decisionOf(d.id);
+
+    var dims = Object.keys(DIM_LABELS).map(function (k) {
+      return '<div class="dim"><span class="lab">' + DIM_LABELS[k] + "</span>" +
+        '<span class="bar" aria-label="' + d.fit.scores[k] + ' of 5">' + bar(d.fit.scores[k]) + "</span>" +
+        '<span class="why">' + esc(d.fit.rationales[k] || "") + "</span></div>";
+    }).join("");
+
+    var claims = d.claims.map(function (c) {
+      return '<div class="claim"><p class="said">' + esc(c.text) + "</p>" +
+        '<div class="src"><span>evidence #' + c.evidence_id + "</span><span>·</span><span>" +
+        esc(c.area || "") + "</span><span>·</span><span>" + esc(c.kind || "") + "</span></div>" +
+        '<p class="quote">' + esc(c.excerpt || "") + "</p></div>";
+    }).join("") || '<p class="hint">No investor-specific claim — this draft could not have been approved.</p>';
+
+    el.innerHTML =
+      '<div class="who-head"><h2>' + esc(inv.name) + "</h2>" +
+      '<span class="meta">' + esc(inv.firm || "") + " · " + esc(inv.role.replace(/_/g, " ")) +
+      " · " + esc(inv.city || "") + " · " + esc(inv.tz || "") + "</span></div>" +
+      '<div class="who-head" style="margin-top:.35rem"><span class="meta">writes ' +
+      money(inv.check_min) + "–" + money(inv.check_max) + " · " +
+      esc((inv.stages || []).join(", ").replace(/_/g, " ")) + " · " +
+      esc((inv.sectors || []).slice(0, 4).join(", ")) + "</span></div>" +
+
+      '<div class="panes">' +
+        '<article class="email"><header>' +
+          '<div class="hrow"><span class="lab">To</span><span class="val">' + esc(inv.email) + "</span></div>" +
+          '<div class="hrow"><span class="lab">Subject</span><span class="val subject">' + esc(d.subject) + "</span></div>" +
+        "</header>" +
+        "<pre>" + esc(d.greeting) + "\n\n" + highlightHook(d.body, d.claims) + "</pre>" +
+        '<pre class="sig">--\n' + esc(d.footer) + "</pre></article>" +
+
+        "<div>" +
+          '<div class="card"><h3>What this email claims about them</h3>' +
+          '<p class="hint">The highlighted sentence is the only investor-specific line. It has to ' +
+          "resolve to a stored, retrieved snippet or the draft cannot enter this queue.</p>" +
+          claims + "</div>" +
+
+          '<div class="card"><h3>Why this investor</h3>' +
+          '<p class="hint">Six dimensions, scored 0–5, each with a reason.</p>' +
+          '<div class="dims">' + dims + "</div></div>" +
+
+          '<div class="card"><h3>Checks cleared</h3>' +
+          '<div class="chips" style="margin-top:.5rem">' +
+            '<span class="chip ok">' + d.checks + " of " + d.checks + " passed</span>" +
+            '<span class="chip">' + d.words + " words / " + D.rules.max_words + "</span>" +
+            '<span class="chip">novelty ' + d.novelty.toFixed(1) + " / 5</span>" +
+            '<span class="chip">0 links</span><span class="chip">0 images</span>' +
+            '<span class="chip brass">' + esc(d.ask_type.replace(/_/g, " ")) + "</span>" +
+            '<span class="chip">opens with ' + esc((d.marker || "").replace(/_/g, " ")) + "</span>" +
+          "</div>" +
+          '<p class="hint" style="margin:.75rem 0 0">variant <code style="font-family:var(--mono)">' +
+          esc(d.variant) + "</code></p></div>" +
+        "</div>" +
+      "</div>" +
+
+      '<div class="decide">' +
+        '<button type="button" class="approve" data-d="approve" aria-pressed="' + (dec === "approve") + '">Approve</button>' +
+        '<button type="button" class="rework" data-d="rework" aria-pressed="' + (dec === "rework") + '">Needs work</button>' +
+        '<button type="button" class="reject" data-d="reject" aria-pressed="' + (dec === "reject") + '">Reject</button>' +
+        '<button type="button" id="export">Export decisions</button>' +
+        '<span class="keys">j / k move · a approve · n needs work · x reject</span>' +
+      "</div>" +
+      '<textarea class="note" id="note" placeholder="Note for Josh — what to change, who this really should go to…">' +
+      esc(noteOf(d.id)) + "</textarea>";
+  }
+
+  /* ---------------- lower tables ---------------- */
+
+  function renderLower() {
+    document.getElementById("suppressed").innerHTML =
+      "<thead><tr><th>Investor</th><th>Fund</th><th>Holds</th><th>Fit</th></tr></thead><tbody>" +
+      D.suppressed.map(function (s) {
+        return "<tr><td>" + esc(s.name) + "</td><td>" + esc(s.firm || "") + "</td><td>" +
+          esc((s.companies || []).join(", ")) + '</td><td class="num">' + s.composite.toFixed(2) +
+          "</td></tr>";
+      }).join("") + "</tbody>";
+
+    var order = { credibility: 0, problem: 1, approach: 2, ask: 3 };
+    var vs = D.variants.slice().sort(function (a, b) {
+      return order[a.slot] - order[b.slot] || a.key.localeCompare(b.key);
+    });
+    document.getElementById("library").innerHTML =
+      "<thead><tr><th>Slot</th><th>Key</th><th>Copy</th></tr></thead><tbody>" +
+      vs.map(function (v) {
+        return "<tr><td>" + esc(v.slot) + '</td><td style="font-family:var(--mono);font-size:.75rem">' +
+          esc(v.key) + "</td><td>" + esc(v.text) + "</td></tr>";
+      }).join("") + "</tbody>";
+
+    var gates = [
+      ["Length", "150 words maximum, four paragraphs, one screen"],
+      ["Problem first", "the problem must land before the solution"],
+      ["Credibility", "a registered marker in the first sentence — verified against your library, not guessed"],
+      ["Novelty", "scored against “I've seen ten of these this week”; fails below 4.0 of 5"],
+      ["Ask", "low-commitment only — no hard-scheduled meeting, no funding ask, no calendar link"],
+      ["Provenance", "every investor-specific sentence maps to stored evidence; zero unsourced claims"],
+      ["Images", "none — the source study found emails with embedded images were disproportionately blocked"],
+      ["Links", "zero on a first touch; the deck goes out on reply"],
+      ["Spam terms", "60-term deny list, no exclamation marks, no shouting"],
+      ["Footer", "physical postal address and a working opt-out"],
+      ["Send window", "Tuesday to Thursday, 07:00–10:00 in the recipient's own timezone"],
+      ["Suppression", "checked again in the last instruction before dispatch"],
+      ["Reputation", "per-mailbox daily budget on a warmup ramp; refuses rather than defers"],
+      ["Approval", "a named human, per email — a model cannot approve its own draft"]
+    ];
+    document.getElementById("gates").innerHTML =
+      "<thead><tr><th>Check</th><th>What it enforces</th></tr></thead><tbody>" +
+      gates.map(function (g) {
+        return "<tr><td style=\"white-space:nowrap\">" + esc(g[0]) + "</td><td>" + esc(g[1]) + "</td></tr>";
+      }).join("") + "</tbody>";
+
+    document.getElementById("fp").textContent = "rules " + D.rules.fingerprint + " · " +
+      D.rules.count + " rules enforced";
+  }
+
+  /* ---------------- decisions ---------------- */
+
+  function decide(v) {
+    if (current == null) return;
+    if (!state.who) {
+      document.getElementById("reviewer").focus();
+      toast("Add your name first — approvals are recorded against a person.");
+      return;
+    }
+    var rec = state.by[current] || {};
+    rec.decision = rec.decision === v ? null : v;
+    rec.who = state.who;
+    rec.at = new Date().toISOString();
+    state.by[current] = rec;
+    save();
+    renderAll();
+  }
+
+  function exportDecisions() {
+    var decided = D.drafts.filter(function (d) { return decisionOf(d.id); });
+    if (!decided.length) { toast("No decisions to export yet."); return; }
+    if (!window.claude || !window.claude.downloads) {
+      toast("Saving files is not available in this view.");
+      return;
+    }
+    var who = state.who || "reviewer";
+    var lines = [
+      "# Prime After Dark — review decisions",
+      "# reviewer: " + who,
+      "# generated: " + new Date().toISOString(),
+      "# Run from the Pitchline repo. Approval is recorded per email, against a person.",
+      ""
+    ];
+    decided.forEach(function (d) {
+      var rec = state.by[d.id], note = (rec.note || "").replace(/\s+/g, " ").trim();
+      lines.push("# " + d.investor.name + " — " + (d.investor.firm || ""));
+      if (note) lines.push("#   note: " + note);
+      if (rec.decision === "approve") {
+        lines.push('pitchline approve ' + d.id + ' --by "' + who.replace(/"/g, "") + '"');
+      } else if (rec.decision === "reject") {
+        lines.push('pitchline reject ' + d.id + ' --by "' + who.replace(/"/g, "") +
+                   '" --reason "' + (note || "rejected in review").replace(/"/g, "") + '"');
+      } else {
+        lines.push("# needs work — left in the queue, not approved");
+      }
+      lines.push("");
+    });
+    window.claude.downloads.save({
+      filename: "prime-after-dark-decisions.txt",
+      data: lines.join("\n")
+    }).then(function () {
+      toast("Saved " + decided.length + " decisions.");
+    })["catch"](function (err) {
+      var code = err && err.code;
+      if (code === "declined") return;
+      toast(code === "rate_limited" ? "A save prompt is already open — try again in a moment."
+                                    : "Could not save the file.");
+    });
+  }
+
+  /* ---------------- wiring ---------------- */
+
+  function renderAll() {
+    renderStrip();
+    renderFilters();
+    renderQueue();
+    renderDetail();
+  }
+
+  document.getElementById("filters").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-f]");
+    if (!b) return;
+    filter = b.dataset.f;
+    renderFilters();
+    renderQueue();
+  });
+
+  document.getElementById("qlist").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-id]");
+    if (!b) return;
+    current = Number(b.dataset.id);
+    renderQueue();
+    renderDetail();
+  });
+
+  document.getElementById("detail").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-d]");
+    if (b) { decide(b.dataset.d); return; }
+    if (e.target.closest("#export")) exportDecisions();
+  });
+
+  document.getElementById("detail").addEventListener("input", function (e) {
+    if (e.target.id !== "note" || current == null) return;
+    var rec = state.by[current] || {};
+    rec.note = e.target.value;
+    state.by[current] = rec;
+    save();
+  });
+
+  var reviewer = document.getElementById("reviewer");
+  reviewer.value = state.who || "";
+  reviewer.addEventListener("input", function () {
+    state.who = reviewer.value.trim();
+    save();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    var tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || e.metaKey || e.ctrlKey || e.altKey) return;
+    var rows = visible();
+    var idx = rows.findIndex(function (d) { return d.id === current; });
+    if (e.key === "j" && idx < rows.length - 1) { current = rows[idx + 1].id; renderQueue(); renderDetail(); }
+    else if (e.key === "k" && idx > 0) { current = rows[idx - 1].id; renderQueue(); renderDetail(); }
+    else if (e.key === "a") decide("approve");
+    else if (e.key === "n") decide("rework");
+    else if (e.key === "x") decide("reject");
+    else return;
+    e.preventDefault();
+  });
+
+  renderAll();
+  renderLower();
+})();
+</script>

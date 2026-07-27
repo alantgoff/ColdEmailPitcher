@@ -1,4 +1,4 @@
-"""Prime After Dark — Miami premium late-night delivery, $2.5M friends & family round.
+"""Prime After Dark — Miami premium late-night delivery, $2.5M seed round.
 
 Every claim below comes from the founder's investor deck (Prime After Dark LLC, 2026).
 Nothing here is invented by the engine: the credibility markers are the founder's
@@ -196,15 +196,17 @@ def seed_profile(session: Session) -> StartupProfile:
             "Prime After Dark is Miami's premium food delivery brand built exclusively for "
             "midnight to 4:30AM."
         ),
-        # A friends & family round is pre-seed, whatever the cheque sizes look like.
-        stage=Stage.PRE_SEED,
+        # Institutional seed. The deck cover still reads "Friends & Family Round" — that
+        # needs updating before it goes to a fund, because a VC reads the mismatch as
+        # either a stale deck or a round that failed to fill.
+        stage=Stage.SEED,
         sectors=SECTORS,
         keywords=KEYWORDS,
         geography="miami",
         raising_usd=2_500_000,
-        # $2.5M from friends, family and angels: most cheques land in this band.
-        target_check_min_usd=50_000,
-        target_check_max_usd=500_000,
+        # A $2.5M seed: a lead writes $1M-$1.5M, the rest fill $250k-$750k.
+        target_check_min_usd=250_000,
+        target_check_max_usd=2_000_000,
         competitors=COMPETITORS,
         credibility_markers=[
             {"type": marker_type, "label": label, "text": text}
@@ -240,7 +242,7 @@ def seed_library(session: Session, profile: StartupProfile) -> int:
                 label=label,
                 body_text=text,
                 sectors=profile.sectors,
-                stages=[profile.stage.value, "seed"],
+                stages=[profile.stage.value, "pre_seed", "series_a"],
                 **kwargs,
             )
         )

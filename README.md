@@ -32,6 +32,20 @@ pitchline send --campaign pad-ff                  # dry run by default
 streamlit run pitchline/app.py                    # the review UI
 ```
 
+### Shareable review console
+
+`streamlit run pitchline/app.py` is the operating surface — it writes approvals back to the
+database. For a co-founder or advisor with no checkout, build the standalone page instead:
+
+```bash
+python scripts/build_review_console.py --campaign pad-seed --out web/console.html
+```
+
+One self-contained HTML file with every draft, the evidence behind each claim, the fit
+scoring and the pre-send blockers. Reviewers decide in the page and export a list of
+`pitchline approve` / `pitchline reject` commands, which you run here — so approval is still
+recorded per email against a named human by the engine, never by a web page.
+
 `pitchline packs` lists the available founder profile packs. The sample investor export is
 synthetic scaffolding — swap in a real OpenVC/PitchBook/Crunchbase export and the ingest
 column mapping will pick it up.
