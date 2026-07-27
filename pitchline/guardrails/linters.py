@@ -62,19 +62,33 @@ from pitchline.rules import (
 from pitchline.schemas import NoveltyVerdict
 
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
-_SPECIFIC_TIME_RE = re.compile(
-    r"(?i)\b("
-    r"(mon|tues?|wed(nes)?|thurs?|fri|satur|sun)day\s+(at\s+)?\d{1,2}\s*(:\d{2})?\s*(am|pm)"
-    r"|\bat\s+\d{1,2}\s*(:\d{2})?\s*(am|pm)\b"
-    r"|\b\d{1,2}\s*(am|pm)\s+(on\s+)?(mon|tues?|wed(nes)?|thurs?|fri)"
-    r"|\bnext\s+(mon|tues?|wed(nes)?|thurs?|fri)day\b.*\b\d{1,2}\s*(am|pm)"
+# R2.5 forbids *asking for* a specific slot ("their office next Tuesday at 3 PM"). It does
+# not forbid mentioning a time: a late-night delivery brand's whole pitch is "12AM to
+# 4:30AM", and "arrives intact at 2AM" is a product claim, not a calendar request. So a
+# sentence only fails when it pairs a time expression with a scheduling verb.
+_TIME_EXPR_RE = re.compile(
+    r"(?i)("
+    r"\b\d{1,2}\s*(:\d{2})?\s*(am|pm)\b"
+    r"|\b(mon|tues?|wed(nes)?|thurs?|fri|satur|sun)day\b"
+    r"|\b\d{1,2}\s*o'?clock\b"
     r")"
+)
+_SCHEDULING_VERB_RE = re.compile(
+    r"(?i)\b("
+    r"meet(s|ing)?|schedul(e|es|ed|ing)|book(s|ed|ing)?|calendar|invit(e|ed|ing)|"
+    r"pencil(l?ed)?|slot(ted)?|"
+    r"come\s+by|drop\s+by|stop\s+by|swing\s+by|your\s+office|coffee|catch\s+up|"
+    r"are\s+you\s+(free|available)|does\s+\w+\s+work\s+for\s+you"
+    r")\b"
 )
 _FUNDING_ASK_RE = re.compile(
     r"(?i)\b(term sheet|wire (the )?funds|commit(ment)? of \$|invest \$|"
     r"lead (our|the) round|write (us )?a check for \$|sign (the|a) safe)\b"
 )
 _OPTOUT_RE = re.compile(r"(?i)(unsubscribe|opt out|opt-out|won'?t (contact|email) you again|reply .*stop)")
+_PLACEHOLDER_RE = re.compile(
+    r"(?i)(\[[^\]]*\]|\{\{[^}]*\}\}|<[^>]+>|\bTODO\b|\bFIXME\b|\bXXXX?\b|\byour address\b)"
+)
 
 
 class GuardrailError(RuntimeError):
@@ -364,16 +378,19 @@ def _check_ask(
                 allowed=str(MAX_ASK_SENTENCES),
             )
         )
-    if FORBID_SPECIFIC_TIME_REQUEST and (match := _SPECIFIC_TIME_RE.search(body)):
-        failures.append(
-            GuardrailFailure(
-                code=GuardrailCode.ASK_TYPE,
-                rule_id="R2.5",
-                detail="asks for a specific time slot ('their office next Tuesday at 3 PM')",
-                observed=match.group(0),
-                allowed="an easy, low-cost way to express interest",
-            )
-        )
+    if FORBID_SPECIFIC_TIME_REQUEST:
+        for sentence in tu.split_sentences(body):
+            if _TIME_EXPR_RE.search(sentence) and _SCHEDULING_VERB_RE.search(sentence):
+                failures.append(
+                    GuardrailFailure(
+                        code=GuardrailCode.ASK_TYPE,
+                        rule_id="R2.5",
+                        detail="asks for a specific time slot ('their office next Tuesday at 3 PM')",
+                        observed=sentence[:110],
+                        allowed="an easy, low-cost way to express interest",
+                    )
+                )
+                break
     if FORBID_FUNDING_ASK and (match := _FUNDING_ASK_RE.search(body)):
         failures.append(
             GuardrailFailure(
@@ -608,7 +625,20 @@ def _check_footer(
     failures = []
     if REQUIRE_PHYSICAL_POSTAL_ADDRESS:
         address = (profile.postal_address if profile else "").strip()
-        if address and _norm(address) not in _norm(footer):
+        if placeholder := _PLACEHOLDER_RE.search(address or footer):
+            # A template address satisfies "a string is present" and nothing else. CAN-SPAM
+            # requires a *valid* address, so an unfilled placeholder has to block the send.
+            failures.append(
+                GuardrailFailure(
+                    code=GuardrailCode.FOOTER,
+                    rule_id="R5.1",
+                    detail="postal address is still a placeholder; CAN-SPAM requires a real one "
+                    "(set it with `pitchline profile-set --postal-address ...`)",
+                    observed=placeholder.group(0),
+                    allowed="a valid physical postal address",
+                )
+            )
+        elif address and _norm(address) not in _norm(footer):
             failures.append(
                 GuardrailFailure(
                     code=GuardrailCode.FOOTER,

@@ -699,7 +699,13 @@ def _detect_conflicts(
     found: list[str] = []
     ids: list[int] = []
     for competitor in competitors:
-        pattern = re.compile(rf"(?i)(?<![\w-]){re.escape(competitor)}(?![\w-])")
+        # Case-SENSITIVE on purpose. Competitor names are proper nouns and appear
+        # capitalised in portfolio data, while plenty of real company names are also
+        # ordinary English words ("Wonder", "Salted", "Prime"). Matching case-insensitively
+        # would suppress good investors because a blog post contained the word "wonder" —
+        # and a silent false suppression is far harder to notice than a missed conflict,
+        # because the target simply never appears in the list.
+        pattern = re.compile(rf"(?<![\w-]){re.escape(competitor)}(?![\w-])")
         for text, eid in haystacks:
             if text and pattern.search(text):
                 if competitor not in found:

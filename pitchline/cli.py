@@ -16,6 +16,7 @@ from sqlmodel import Session, select
 from pitchline import analytics as analytics_mod
 from pitchline import approval as approval_mod
 from pitchline import demo as demo_mod
+from pitchline import profiles as profiles_mod
 from pitchline import llm, suppression
 from pitchline.compose import (
     HumanFixRequired,
@@ -89,17 +90,60 @@ def _campaign(session: Session, name: str, *, create_for: StartupProfile | None 
 
 @app.command()
 def init(
-    demo: bool = typer.Option(False, "--demo", help="Seed the demo founder profile and library."),
+    profile_pack: Optional[str] = typer.Option(
+        None, "--profile", help=f"Seed a founder profile pack: {', '.join(profiles_mod.available())}"
+    ),
+    demo: bool = typer.Option(False, "--demo", help="Alias for --profile meridian."),
     reset: bool = typer.Option(False, "--reset", help="Drop and recreate every table."),
 ) -> None:
-    """Create the database (and optionally seed a runnable founder setup)."""
+    """Create the database (and optionally seed a founder profile pack)."""
     engine = get_engine()
     reset_db(engine) if reset else init_db(engine)
     _echo(f"database ready ({engine.url})")
-    if demo:
-        with session_scope(engine) as session:
-            profile = demo_mod.seed_all(session)
-            _echo(f"seeded profile {profile.name!r}, variant library, updates and mailboxes")
+    key = profile_pack or ("meridian" if demo else None)
+    if key:
+        try:
+            with session_scope(engine) as session:
+                seeded = profiles_mod.seed(key, session)
+                _echo(f"seeded {seeded.name!r}: variant library, updates and mailboxes")
+        except KeyError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+
+
+@app.command()
+def packs() -> None:
+    """List the available founder profile packs."""
+    for key, label in profiles_mod.available().items():
+        _echo(f"  {key:<20} {label}")
+
+
+@app.command("profile-set")
+def profile_set(
+    postal_address: Optional[str] = typer.Option(None, help="CAN-SPAM physical address (R5.1)."),
+    founder_email: Optional[str] = typer.Option(None),
+    reply_to: Optional[str] = typer.Option(None),
+    deck_url: Optional[str] = typer.Option(None),
+    calendar_url: Optional[str] = typer.Option(None),
+    founder_name: Optional[str] = typer.Option(None),
+) -> None:
+    """Fill in the founder details a live send legally requires."""
+    fields = {
+        "postal_address": postal_address,
+        "founder_email": founder_email,
+        "reply_to_email": reply_to,
+        "deck_url": deck_url,
+        "calendar_url": calendar_url,
+        "founder_name": founder_name,
+    }
+    with session_scope() as session:
+        profile = _profile(session)
+        name = profile.name
+        for key, value in fields.items():
+            if value is not None:
+                setattr(profile, key, value)
+                _echo(f"  {key} = {value}")
+        session.add(profile)
+    _echo(f"updated {name}")
 
 
 @app.command()
@@ -519,13 +563,14 @@ def stats(campaign: Optional[str] = typer.Option(None, "--campaign", "-c")) -> N
 @app.command()
 def demo(
     csv_path: Path = typer.Option(Path("data/sample_investors.csv"), "--csv"),
+    profile_pack: str = typer.Option("meridian", "--profile"),
     campaign: str = typer.Option("demo", "--campaign", "-c"),
     investors: int = typer.Option(60, help="How many investors to score."),
     drafts: int = typer.Option(10, help="How many drafts to compose."),
 ) -> None:
     """Run the whole pipeline end to end in dry-run mode."""
     _echo("1. init + seed")
-    init(demo=True, reset=True)
+    init(profile_pack=profile_pack, demo=False, reset=True)
     _echo("\n2. ingest")
     ingest(csv_path, limit=None)
     _echo("\n3. target")

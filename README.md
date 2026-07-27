@@ -14,23 +14,27 @@ source passage it comes from.
 
 ---
 
-## Quick start
+## Quick start (Prime After Dark)
 
 ```bash
-pip install -e ".[dev]"                     # core: sqlmodel, pydantic, typer
-python scripts/generate_sample_investors.py # 570-row sample export
-pytest                                      # 85 tests, no network, no API key
+pip install -e ".[dev]"
+pytest                                            # 97 tests, no network, no API key
 
-pitchline init --demo                       # database + a runnable founder setup
-pitchline ingest data/sample_investors.csv  # partner-level records with provenance
-pitchline target --campaign demo            # score, rank, cap, suppress conflicts
-pitchline compose --campaign demo --limit 20
-pitchline queue --campaign demo             # what is waiting on you
-pitchline show 1                            # read it exactly as it will arrive
-pitchline approve 1 --by "Your Name"        # R6.1 — one email at a time
-pitchline send --campaign demo              # dry run by default
-streamlit run pitchline/app.py              # the review UI
+pitchline init --profile prime-after-dark --reset
+pitchline profile-set --postal-address "Prime After Dark LLC, <street>, Miami, FL <zip>"
+pitchline ingest data/sample_investors_food.csv   # replace with your real investor export
+pitchline target --campaign pad-ff                # score, rank, cap, suppress conflicts
+pitchline compose --campaign pad-ff --limit 25
+pitchline queue --campaign pad-ff                 # what is waiting on you
+pitchline show 3                                  # read it exactly as it will arrive
+pitchline approve 3 --by "Josh"                   # R6.1 — one email at a time
+pitchline send --campaign pad-ff                  # dry run by default
+streamlit run pitchline/app.py                    # the review UI
 ```
+
+`pitchline packs` lists the available founder profile packs. The sample investor export is
+synthetic scaffolding — swap in a real OpenVC/PitchBook/Crunchbase export and the ingest
+column mapping will pick it up.
 
 Nothing sends without `--live` **and** a per-email human approval.
 
@@ -47,35 +51,51 @@ pipeline — and the whole test suite — runs with no network and no spend. Set
 ## What a run actually looks like
 
 ```
-570 rows -> 560 new investors, 10 duplicates, 56 quarantined, 180 firms, 2240 evidence snippets
-504 considered -> 119 qualified (227 low fit, 23 conflicts, 135 lacking research, 0 over cap)
-12 drafts passed every gate, 0 routed to the human-fix queue
+570 rows -> 560 investors, 56 quarantined, 180 firms, 2240 evidence snippets
+504 considered -> 62 qualified (291 low fit, 21 conflicts, 130 lacking research, 0 over cap)
+25 drafts passed every gate, 0 routed to the human-fix queue
 ```
 
-Every one of those numbers is a rule doing its job: 56 rows quarantined because they were
-not partner-level or were shared inboxes (R1.4); 227 investors dropped because the thesis
-did not match (R1.2); 23 suppressed because the fund holds a direct competitor (R1.5); 135
-skipped because there was not enough evidence on file to write anything specific (R1.3).
+Every number is a rule doing its job: 56 rows quarantined as non-partner or shared inboxes
+(R1.4); 291 investors dropped because the thesis did not match (R1.2); 21 suppressed
+because the fund holds a direct competitor (R1.5); 130 skipped because there was not enough
+evidence on file to write anything specific (R1.3).
 
 A draft it produces:
 
-> Hi Nadia,
+> Hi Arjun,
 >
-> I spent six years running clinical operations at a CRO that paid 400 trial sites a month.
-> Your stated thesis — "back seed-stage companies rebuilding the financial plumbing of
-> healthcare delivery, with a bias toward clinical operations" — is why I am writing to you
-> rather than mass-mailing.
+> I ran high-volume restaurant operations in New York before starting Prime After Dark.
+> Your stated thesis — "Early-stage consumer brands with real unit economics" — is why I am
+> writing to you rather than mass-mailing.
 >
-> Clinical trial sites wait an average of 87 days to be paid for visits they have already
-> completed, and roughly 1 in 5 sites leaves a study citing cash flow.
+> Late night is the fastest-growing daypart in food delivery, up 7.5% year over year, and
+> no premium operator serves it.
 >
-> We parse the executed site contract into machine-readable payment triggers, then release
-> payment when the EDC records the visit.
+> We operate only from 12AM to 4:30AM, so we own the window when every premium competitor
+> is closed.
 >
-> Happy to send the deck if that is easier.
+> Open to a short call in the next week or two if this is relevant.
 
-86 words. Credibility marker in sentence one. The quoted clause is a verbatim extract from
+90 words. Credibility marker in sentence one. The quoted clause is a verbatim extract from
 a stored evidence row, and the draft records which row.
+
+### Before Prime After Dark sends anything live
+
+1. **Postal address.** The pack ships a placeholder and the footer gate *fails* on it —
+   CAN-SPAM needs a real address. `pitchline profile-set --postal-address "..."`.
+2. **The updates table.** `pitchline/profiles/prime_after_dark.py` carries the deck's
+   qualitative traction ("LOIs in progress", "waitlist growing"). R4.3 exists because a
+   follow-up needs *new information*; replace each with a dated, numeric version — a signed
+   LOI with a named counterparty, a waitlist count, soft-launch orders and repeat rate.
+   Until then the follow-ups are weak even though they pass the gate.
+3. **Sending domain.** `primeafterdark-outreach.com` (or similar) with SPF/DKIM/DMARC —
+   never the primary domain. The pack starts mailboxes at day 0 of the warmup ramp, which
+   means 5 sends a day, not 40. That is deliberate.
+4. **The investor list.** Replace the synthetic export. For a $2.5M friends & family round
+   the highest-yield cold list is Miami angels, food & beverage funds, hospitality
+   operators and consumer pre-seed — not generalist VC. Note that the 4%/13-17% benchmarks
+   come from cold-pitching institutional VCs; treat them as a reference line, not a target.
 
 ---
 

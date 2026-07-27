@@ -130,10 +130,15 @@ inbox. Records without a resolvable partner-level role are held in the ingest qu
 not promoted to targets. Non-partner roles (associate, analyst, platform, chief of staff)
 are outside the campaign universe.
 
+Angels are included: the rule's purpose is to reach someone who can decide, and an angel
+investing their own money is that person. Titles that do not resolve to an investing role —
+"CEO", "Founder", "Operator" — stay in quarantine with their reason recorded, because a
+person's operating title says nothing about whether they invest.
+
 ```params
 require_named_individual = true
 require_investing_role = true
-partner_level_roles = ["managing_partner", "general_partner", "founding_partner", "partner", "venture_partner", "principal"]
+partner_level_roles = ["managing_partner", "general_partner", "founding_partner", "partner", "venture_partner", "principal", "angel"]
 forbid_firm_level_targets = true
 forbid_generic_mailboxes = true
 generic_mailbox_locals = ["info", "hello", "contact", "team", "admin", "support", "press", "careers", "ir", "deals", "submissions", "pitch", "pitches", "intros", "inbound", "office"]
