@@ -95,7 +95,10 @@ PROMPTS: dict[str, Prompt] = {
     ),
     "novelty_v1": Prompt(
         key="novelty_v1",
-        version="1.0.0",
+        # 1.1.0: the offline scorer changed from cliche-phrase matching to measuring
+        # genericness directly. Scores from 1.0.0 are not comparable, and a draft's
+        # prompt_version is how you tell which scorer cleared it.
+        version="1.1.0",
         system=(
             "You are a general partner at a seed fund reading the 400th cold pitch of the month. "
             "You are impatient and pattern-matching."
@@ -264,6 +267,55 @@ _CLICHES = (
     "the uber for", "the airbnb for", "end-to-end platform", "leading provider",
 )
 
+#: Abstraction that says nothing. The source's complaint is "generic, vague, or
+#: derivative" — cliches cover derivative, these cover generic and vague.
+_VAGUE_TERMS = (
+    "solutions", "innovative", "the future of", "technology company", "great restaurants",
+    "modern consumer", "combined experience", "connects", "connecting", "empowering",
+    "leading provider", "best in class", "next level", "robust", "value-add", "synergies",
+    "wide range of", "high quality", "customer-centric", "data-driven approach",
+    "passionate about", "our platform", "we are building the future", "transforming the way",
+    "reimagining", "at scale", "seamlessly", "unparalleled", "cutting edge",
+)
+#: A number that carries a unit or timeframe. Bare digits are not specificity — but the
+#: unit does not always sit flush against the number ("30 finance hours a month", "1 in 5
+#: sites"), and requiring adjacency made the detector miss real figures and fail good
+#: drafts. Up to two words may intervene.
+_UNITS = (
+    r"days?|hours?|minutes?|weeks?|months?|years?|sites?|stores?|locations?|customers?|"
+    r"orders?|visits?|patients?|trials?|brands?|partners?|people|staff|cities|corridors?|"
+    r"restaurants?|kitchens?|units?|nights?|deliveries|meals?|am|pm"
+)
+_QUANTIFIED_RE = re.compile(
+    r"(?i)("
+    r"\$\s?\d[\d,.]*\s?[kmb]?"                      # $2.1M
+    r"|\d[\d,.]*\s?%"                                 # 7.5%
+    r"|\b\d[\d,.]*\s+in\s+\d+\b"                    # 1 in 5
+    r"|\b\d[\d,.]*\s+(?:\w+\s+){0,2}(?:" + _UNITS + r")\b"   # 30 finance hours
+    # A rate: any number followed shortly by "a month" / "per week". Catches phrasings the
+    # unit list will never enumerate ("34 delivery nights a month").
+    r"|\b\d[\d,.]*\b(?=[^.]{0,32}?\b(?:a|per)\s+(?:day|week|month|quarter|year|night|hour)\b)"
+    r"|\b\d{1,2}[:.]?\d{0,2}\s?(?:am|pm)\b"           # 4:30AM
+    r")"
+)
+#: "the Uber for X" — borrowed positioning.
+_BORROWED_RE = re.compile(
+    r"(?i)\b(uber|airbnb|stripe|shopify|netflix|amazon|tesla)\s+(for|of)\s+\w+"
+)
+
+
+def _named_entities(text: str) -> list[str]:
+    """Capitalised words that are not sentence-openers — a proxy for concrete names."""
+    found: list[str] = []
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", text):
+        words = sentence.split()
+        for word in words[1:]:
+            stripped = word.strip(".,;:!?\"'()")
+            if len(stripped) > 2 and stripped[0].isupper() and not stripped.isupper():
+                found.append(stripped)
+    return sorted(set(found))
+
+
 _BOUNCE_RE = re.compile(
     r"(?i)(delivery status notification|undeliverable|mail delivery (failed|subsystem)|"
     r"address not found|user unknown|550[ -]5\.|recipient address rejected|"
@@ -431,26 +483,64 @@ class HeuristicClient:
     # -- novelty (R2.4) -----------------------------------------------------------------
 
     def _novelty(self, v: dict[str, Any]) -> NoveltyVerdict:
-        body = f"{v.get('subject', '')}\n{v.get('body', '')}"
-        lowered = body.lower()
-        hits = [c for c in _CLICHES if c in lowered]
-        score = 5.0
-        score -= 0.9 * len(hits)
-        if not re.search(r"\d", body):
-            # No numbers at all reads as vague; the source's complaint is exactly vagueness.
-            score -= 1.5
-        if re.search(r"(?i)\b(\w+) for (\w+)\b", body) and re.search(
-            r"(?i)\b(uber|airbnb|stripe|shopify|netflix)\b", lowered
-        ):
-            score -= 1.0
+        """R2.4 — "would a VC think 'I've seen ten of these this week'?"
+
+        The first version of this scored cliche PHRASES and nothing else, so a pitch with
+        no cliches and no content ("we are a technology company building innovative
+        solutions") scored a perfect 5. That is precisely the email the source says gets
+        ignored, and the gate waved it through — a gate that never fires on the failure
+        mode it was built for.
+
+        This scores genericness directly: concrete facts earn, abstraction costs.
+        """
+        subject, body = v.get("subject", "") or "", v.get("body", "") or ""
+        text = f"{subject}\n{body}"
+        lowered = text.lower()
+
+        cliches = [c for c in _CLICHES if c in lowered]
+        vague = [t for t in _VAGUE_TERMS if t in lowered]
+
+        # A quantified fact is a number that carries a unit or a timeframe. A bare "2" is
+        # not evidence of specificity; "87 days" and "7.5% year over year" are.
+        quantified = _QUANTIFIED_RE.findall(text)
+        # Named entities: capitalised words that are not sentence-openers.
+        named = _named_entities(text)
+
+        # Calibration note: the source frames this as what's WRONG with a pitch — "generic,
+        # vague, or derivative pitches got ignored" — so the penalties carry the signal and
+        # the base sits near the pass mark. An earlier version started low and made a draft
+        # earn its way up, which failed genuinely specific copy that happened to contain
+        # only one figure.
+        score = 4.2
+        score += min(0.8, 0.25 * len({q[0] for q in quantified}))
+        score += min(0.5, 0.15 * len(named))
+        score -= 0.9 * len(cliches)
+        score -= 0.7 * len(vague)
+        if not quantified:
+            score -= 1.4
+        if _BORROWED_RE.search(text):
+            score -= 0.8
         if v.get("has_personalization_hook"):
-            score += 0.5
-        if v.get("has_specific_problem"):
-            score += 0.5
+            score += 0.3
         score = max(0.0, min(5.0, round(score, 2)))
-        figures = "contains" if re.search(r"\d", body) else "contains no"
-        reason = f"found {len(hits)} cliche phrase(s); {figures} concrete figures"
-        return NoveltyVerdict(score=score, reason=reason, cliches=hits[:8])
+
+        bits = []
+        if quantified:
+            bits.append(f"{len(quantified)} quantified claim(s)")
+        else:
+            bits.append("no quantified claim")
+        if named:
+            bits.append(f"{len(named)} named entity/entities")
+        if cliches:
+            bits.append(f"{len(cliches)} cliche(s)")
+        if vague:
+            bits.append(f"{len(vague)} vague phrase(s): {', '.join(vague[:3])}")
+        return NoveltyVerdict(
+            score=score,
+            reason="; ".join(bits),
+            cliches=(cliches + vague)[:8],
+            resembles=("a generic category pitch" if score < 2.5 else ""),
+        )
 
     # -- personalization hook (R2.6) ----------------------------------------------------
 

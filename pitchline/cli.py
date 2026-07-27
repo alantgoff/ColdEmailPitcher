@@ -415,7 +415,11 @@ def show(draft_id: int = typer.Argument(...)) -> None:
             raise typer.BadParameter(f"no draft {draft_id}")
         target_row = session.get(Target, draft.target_id)
         investor = session.get(Investor, target_row.investor_id) if target_row else None
-        _echo(f"To: {investor.email if investor else '?'}")
+        # An unresolved address must read as unresolved, not as the string "None".
+        recipient = (investor.email if investor else None) or (
+            f"[no verified address — {investor.full_name}]" if investor else "[no recipient]"
+        )
+        _echo(f"To: {recipient}")
         _echo(f"Subject: {draft.subject}")
         _echo("-" * 72)
         _echo(draft.rendered)

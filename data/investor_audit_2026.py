@@ -102,6 +102,38 @@ VERIFIED_FINDINGS = [
         "action": "Flag status as unconfirmed.",
     },
     {
+        "id": "F8",
+        "severity": "high",
+        "record": "Jaws Ventures / JAWS Estates Capital",
+        "claim_was": "Two separate Miami investors, with Jaws Ventures at seed/Series A.",
+        "truth": (
+            "Jaws Ventures IS Barry Sternlicht's family office, headquartered in Miami "
+            "Beach and founded 2014 — the same entity recorded separately as JAWS Estates "
+            "Capital. It provides GROWTH capital to consumer and technology companies, not "
+            "seed."
+        ),
+        "impact": (
+            "A duplicate that would have double-contacted one team, carrying a wrong stage "
+            "that put a growth-stage family office near the top of the seed prospect "
+            "ranking."
+        ),
+        "source": "altss.com fund profile; jawsvc.com/about; Crunchbase",
+        "action": "Merge into one record and correct the stage to growth (drops to Tier C).",
+    },
+    {
+        "id": "F9",
+        "severity": "low",
+        "record": "SC30 / Penny Jar Capital",
+        "claim_was": "Two independent funds.",
+        "truth": (
+            "Both are Stephen Curry vehicles — SC30 is his holding company and Penny Jar "
+            "Capital is the venture fund it co-founded. Distinct entities, one principal."
+        ),
+        "impact": "Contacting both reaches the same team twice.",
+        "source": "public fund profiles",
+        "action": "Keep both, flag as related so only one is contacted.",
+    },
+    {
         "id": "F7",
         "severity": "medium",
         "record": "Springdale Ventures",
@@ -133,6 +165,14 @@ CONFIRMED_CONTACTS = {
 REMOVE = {
     "GPS Hospitality": "F3",
     "Derive Ventures": "F4",
+    # Same family office as JAWS Estates Capital, which is kept.
+    "Jaws Ventures": "F8",
+}
+
+#: Distinct entities sharing one principal — contact one, not both.
+RELATED_ENTITIES = {
+    "SC30": "Penny Jar Capital",
+    "Penny Jar Capital": "SC30",
 }
 
 #: Field-level corrections applied by the audit script.
@@ -141,6 +181,12 @@ CORRECTIONS = {
     "CAVU Consumer Partners": {"partner_name": "", "partner_role": "", "finding": "F1"},
     "Greycroft": {"partner_name": "", "partner_role": "", "finding": "F2"},
     "Chobani Incubator": {"status_note": "status unconfirmed for 2026", "finding": "F6"},
+    "JAWS Estates Capital": {
+        "stages": "Growth", "city": "Miami Beach",
+        "thesis": "Barry Sternlicht's Miami Beach family office, founded 2014, providing "
+                  "growth capital to consumer and technology companies.",
+        "finding": "F8",
+    },
 }
 
 #: Discovered during the audit — Clayton Christopher's actual current fund.

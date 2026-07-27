@@ -170,11 +170,28 @@ def test_a_followup_carries_one_of_the_packs_updates(
         first, mailbox=mailbox, now=a_valid_send_time()
     )
 
+    # The pack's shipped updates carry the deck's qualitative traction language and no
+    # figures, so R2.4 refuses them. That is the software making the point the README
+    # makes in prose: a follow-up that says "things are going well" is not new information.
+    from pitchline.compose.pitch import HumanFixRequired
+
+    with pytest.raises(HumanFixRequired):
+        generate_followup(session, target=target, profile=pad_profile, touch_number=2)
+
+    # Give the same update a real number and the same follow-up goes through.
+    for update in session.exec(select(Update)):
+        update.body_text = (
+            "The Brickell hotel LOI is signed and two corporate partners are live, taking "
+            "us to 34 delivery nights a month."
+        )
+        update.consumed_by_draft_id = None
+        session.add(update)
+    session.flush()
+
     followup = generate_followup(session, target=target, profile=pad_profile, touch_number=2)
 
     assert followup.update_id is not None
-    update = session.get(Update, followup.update_id)
-    assert update.headline in {h for h, _, _, _ in pad.UPDATES}
+    assert session.get(Update, followup.update_id).consumed_by_draft_id == followup.id
     assert lint_draft(session, followup, profile=pad_profile).passed
 
 
@@ -328,6 +345,62 @@ def test_angels_are_inside_the_campaign_universe(session):
 
 
 # --------------------------------------------------------------------------------------
+# R2.4 — the gate has to fire on the failure mode it was built for
+# --------------------------------------------------------------------------------------
+
+
+def test_the_novelty_gate_rejects_a_generic_pitch(client):
+    """The missing test that let a broken gate ship.
+
+    The first scorer only matched cliche phrases, so a pitch with no cliches and no
+    content scored a perfect 5 — exactly the email the source says gets ignored. Every
+    assertion here is about a draft that contains no cliche at all.
+    """
+    from pitchline.rules import MIN_NOVELTY_SCORE
+    from pitchline.schemas import NoveltyVerdict
+
+    def score(body: str) -> float:
+        return client.run(
+            "novelty_v1", NoveltyVerdict,
+            {"subject": "Prime After Dark", "body": body,
+             "has_personalization_hook": True, "has_specific_problem": True},
+        ).score
+
+    generic = (
+        "We are building the future of food delivery. Our platform connects hungry "
+        "customers with great restaurants. We have grown 40% month over month."
+    )
+    boilerplate = (
+        "We are a technology company building innovative solutions for the modern "
+        "consumer. Our team has 20 years of combined experience."
+    )
+    specific = (
+        "Our operating team comes out of New York premium kitchens, not out of a delivery "
+        "app. Late night is the fastest-growing daypart in food delivery, up 7.5% year "
+        "over year. We operate only from 12AM to 4:30AM, so we own the window when every "
+        "premium competitor is closed."
+    )
+
+    assert score(generic) < MIN_NOVELTY_SCORE, "a category pitch must not clear the gate"
+    assert score(boilerplate) < MIN_NOVELTY_SCORE, "abstraction must not clear the gate"
+    assert score(specific) >= MIN_NOVELTY_SCORE, "a specific, quantified pitch must clear it"
+    assert score(specific) > score(generic) + 2, "the gate must separate them decisively"
+
+
+def test_novelty_rewards_quantified_facts_not_bare_digits(client):
+    """"raising 2M" is not specificity; "87 days" is."""
+    from pitchline.schemas import NoveltyVerdict
+
+    def score(body: str) -> float:
+        return client.run("novelty_v1", NoveltyVerdict,
+                          {"subject": "x", "body": body}).score
+
+    bare = "We have 4 things and 12 other things and 7 more things in our platform."
+    real = "Sites wait 87 days to be paid and 1 in 5 leave, costing sponsors $40,000 each."
+    assert score(real) > score(bare)
+
+
+# --------------------------------------------------------------------------------------
 # Contact quality — the gate that protects the sending domain
 # --------------------------------------------------------------------------------------
 
@@ -437,3 +510,55 @@ def test_firm_prospects_are_never_mistaken_for_targets(session, pad_profile, cli
     assert list(session.exec(select(Target))) == []
     prospects = ranked_prospects(session, campaign.id)
     assert prospects and prospects[0][1].name == "Branded Hospitality Ventures"
+
+
+# --------------------------------------------------------------------------------------
+# The audit itself has to stay true
+# --------------------------------------------------------------------------------------
+
+
+def test_audit_findings_are_actually_applied():
+    """Findings recorded as data are worthless if the pipeline does not honour them."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from data.investor_audit_2026 import CORRECTIONS, REMOVE
+    from scripts.audit_investors import apply_audit
+    from data.investor_universe_2026 import ALL_RECORDS
+
+    audited = apply_audit(ALL_RECORDS)
+    firms = {r["firm"] for r in audited}
+
+    for removed in REMOVE:
+        assert removed not in firms, f"{removed} was disproved but is still in the universe"
+
+    by_firm = {r["firm"]: r for r in audited}
+    # F1/F2: stale contacts stripped.
+    assert not by_firm["CAVU Consumer Partners"]["partner_name"]
+    assert not by_firm["Greycroft"]["partner_name"]
+    # F5: corrected HQ.
+    assert by_firm["Blumberg Capital"]["city"] == "San Francisco"
+    # F8: the family office kept its growth mandate.
+    assert by_firm["JAWS Estates Capital"]["stages"] == "Growth"
+    # The audit's own addition survived.
+    assert "Asto Consumer Partners" in firms
+
+    for firm, correction in CORRECTIONS.items():
+        assert firm in by_firm, f"correction targets {firm}, which is not in the universe"
+
+
+def test_growth_funds_never_reach_tier_a():
+    """A buyout fund is a real investor and a structurally impossible recipient."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from scripts.audit_investors import grade
+
+    for firm in ("Roark Capital", "Blackstone", "KKR", "Thoma Bravo"):
+        record = {"firm": firm, "stages": "Growth", "sectors": "Restaurants; Consumer",
+                  "thesis": "Restaurant private equity."}
+        tier, reasons = grade(record)
+        assert tier == "C", f"{firm} graded {tier}"
+        assert "seed" in reasons[0]

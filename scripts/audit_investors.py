@@ -20,8 +20,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from data.investor_audit_2026 import (  # noqa: E402
-    ADDITIONS, ADJACENT_SECTORS, CORE_SECTORS, CORRECTIONS, NON_US_HINTS,
-    OFF_THESIS_SECTORS, REMOVE, VERIFIED_FINDINGS,
+    ADDITIONS, ADJACENT_SECTORS, CONFIRMED_CONTACTS, CORE_SECTORS, CORRECTIONS,
+    NON_US_HINTS, OFF_THESIS_SECTORS, RELATED_ENTITIES, REMOVE, VERIFIED_FINDINGS,
 )
 from data.investor_universe_2026 import ALL_RECORDS, SEGMENT_LABELS  # noqa: E402
 
@@ -66,8 +66,10 @@ def off_thesis(record: dict) -> bool:
 
 
 def non_us(record: dict) -> bool:
+    """Outside the US. Reads the shared NON_US_HINTS list rather than a private literal —
+    the previous version hardcoded the check and left the constant dead."""
     country = record.get("country") or ""
-    return bool(country) and country not in ("United States",)
+    return country in NON_US_HINTS
 
 
 def apply_audit(records: list[dict]) -> list[dict]:
@@ -123,6 +125,12 @@ def grade(record: dict) -> tuple[str, list[str]]:
         tier = "B"
     if not record.get("portfolio") and not record.get("recent_activity"):
         reasons.append("thin evidence — no portfolio or recent activity captured")
+    if record.get("partner_name") in CONFIRMED_CONTACTS:
+        reasons.append("contact verified during the audit")
+    elif record.get("partner_name"):
+        reasons.append("contact NOT re-verified — check before sending")
+    if record["firm"] in RELATED_ENTITIES:
+        reasons.append(f"shares a principal with {RELATED_ENTITIES[record['firm']]} — contact one")
 
     return tier, reasons
 
@@ -173,8 +181,22 @@ def main() -> None:
         print(f"  {count:>4}  {SEGMENT_LABELS.get(segment, segment)}")
 
     named = [r for r, t, _ in graded if t in ("A", "B") and r.get("partner_name")]
-    print(f"\nContactable today (Tier A/B with a named, audited partner): {len(named)}")
+    verified = [r for r in named if r["partner_name"] in CONFIRMED_CONTACTS]
+    print(f"\nNamed contacts in Tier A/B: {len(named)}  "
+          f"({len(verified)} re-verified during this audit)")
     for record in named:
+        mark = "verified  " if record["partner_name"] in CONFIRMED_CONTACTS else "UNCHECKED "
+        print(f"  {mark}{record['partner_name']:<22} {record['firm'] or '(angel)'}")
+
+    # The real ceiling on this list is not fit, it is evidence: R1.3 refuses to write to
+    # anyone whose portfolio, thesis and recent activity are not all on file.
+    draftable = [
+        r for r, t, _ in graded
+        if t in ("A", "B") and r.get("partner_name")
+        and r.get("thesis") and r.get("portfolio") and r.get("recent_activity")
+    ]
+    print(f"\nCould produce a draft today (named + full R1.3 evidence): {len(draftable)}")
+    for record in draftable:
         print(f"  {record['partner_name']:<22} {record['firm']}")
 
     print("\nTop of Tier A:")
