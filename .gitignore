@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local state — never commit a campaign database or real outbound mail.
+*.db
+*.sqlite3
+outbox/
+inbox/
+.streamlit/secrets.toml
+
+# Credentials
+.env
+*token*.json
+credentials*.json

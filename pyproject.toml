@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pitchline"
+version = "0.1.0"
+description = "Founder-side VC outreach engine — qualified replies per unit of sender reputation."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+
+dependencies = [
+    "sqlmodel>=0.0.22",
+    "pydantic>=2.7",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+# The engine runs end to end without these; each one turns on a specific capability.
+llm = ["anthropic>=0.40"]
+research = ["httpx>=0.27", "trafilatura>=1.8"]
+ui = ["streamlit>=1.36"]
+schedule = ["apscheduler>=3.10"]
+gmail = ["google-api-python-client>=2.130", "google-auth-oauthlib>=1.2"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0"]
+all = [
+    "anthropic>=0.40",
+    "httpx>=0.27",
+    "trafilatura>=1.8",
+    "streamlit>=1.36",
+    "apscheduler>=3.10",
+    "google-api-python-client>=2.130",
+    "google-auth-oauthlib>=1.2",
+    "pytest>=8.0",
+]
+
+[project.scripts]
+pitchline = "pitchline.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["pitchline*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
