@@ -832,7 +832,12 @@ def _detect_conflicts(
         (" ".join(investor.get("portfolio_companies") or []), None)
     ]
     for snippet in evidence:
-        if snippet.get("area") == "portfolio" or snippet.get("kind") in {
+        # Recent-activity evidence counts as portfolio evidence for conflict purposes.
+        # A fund's stake in a competitor is at least as likely to be phrased "led Wonder's
+        # $700M round" in a news write-up as it is to appear in a tidy portfolio list, and
+        # scanning only the tidy list let exactly that case through: Forerunner Ventures
+        # backs Wonder, a named competitor, and R1.5 did not see it.
+        if snippet.get("area") in {"portfolio", "recent_activity"} or snippet.get("kind") in {
             "portfolio_company",
             "investment",
         }:

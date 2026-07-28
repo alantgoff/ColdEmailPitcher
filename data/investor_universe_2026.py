@@ -890,6 +890,8 @@ SEGMENT_LABELS = {
     "delivery": "Delivery, logistics & marketplace",
     "commerce": "Commerce & retail technology",
     "miami": "Miami / Florida",
+    "regional_miami": "Miami / South Florida",
+    "comparable_investor": "Already funded a comparable company",
     "latino_led": "Latino-led / LatAm connected",
     "consumer": "Consumer generalist",
     "celebrity_consumer": "Operator, athlete & talent-led consumer fund",

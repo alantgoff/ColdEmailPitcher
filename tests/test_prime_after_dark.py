@@ -534,9 +534,14 @@ def test_audit_findings_are_actually_applied():
         assert removed not in firms, f"{removed} was disproved but is still in the universe"
 
     by_firm = {r["firm"]: r for r in audited}
-    # F1/F2: stale contacts stripped.
-    assert not by_firm["CAVU Consumer Partners"]["partner_name"]
-    assert not by_firm["Greycroft"]["partner_name"]
+    # F1/F2 disproved two specific people, not the firms themselves. A later research pass
+    # supplying a current, sourced partner is the audit working as intended; what must never
+    # come back is the stale name. Assert on the person, not on the firm being contactless.
+    # Firm-scoped: both people are real and reachable at their *current* funds — Christopher
+    # at Asto, Patricof at Primetime Partners — so the bad pairing is person-at-firm.
+    pairs = {(r["firm"], r["partner_name"]) for r in audited}
+    assert ("CAVU Consumer Partners", "Clayton Christopher") not in pairs, "F1 regressed"
+    assert ("Greycroft", "Alan Patricof") not in pairs, "F2 regressed"
     # F5: corrected HQ.
     assert by_firm["Blumberg Capital"]["city"] == "San Francisco"
     # F8: the family office kept its growth mandate.

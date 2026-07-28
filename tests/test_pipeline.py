@@ -19,6 +19,7 @@ from pitchline.inbox.poll import MaildirPoller, poll_and_process
 from pitchline.models import (
     Draft,
     EvidenceArea,
+    EvidenceKind,
     GuardrailCode,
     Investor,
     InvestorRole,
@@ -35,7 +36,13 @@ from pitchline.send.preflight import OutsideSendWindowError, UnknownTimezoneErro
 from pitchline.send.transport import DryRunTransport, TransportError, build_message
 from pitchline.targeting import CampaignCapExceeded, build_campaign, score_investor
 from pitchline.timeutil import next_send_window, utcnow
-from tests.conftest import a_valid_send_time, give_full_research, make_investor, make_target
+from tests.conftest import (
+    a_valid_send_time,
+    add_evidence,
+    give_full_research,
+    make_investor,
+    make_target,
+)
 
 SAMPLE_CSV = Path(__file__).resolve().parent.parent / "data" / "sample_investors.csv"
 
@@ -191,6 +198,54 @@ def test_conflict_is_detected_from_portfolio_evidence(session, campaign, profile
     assert target.has_portfolio_conflict is True
     assert "Greenphire" in target.conflict_companies
     assert target.status is TargetStatus.SUPPRESSED_CONFLICT
+
+
+def test_a_competitor_named_only_in_recent_activity_is_still_a_conflict(
+    session, campaign, profile, client
+):
+    """R1.5 — a stake in a competitor is as often reported as it is listed.
+
+    Forerunner Ventures backs Wonder, a named competitor, but the fact lives in a funding
+    write-up rather than the portfolio list. Scanning only the portfolio missed it.
+    """
+    investor = make_investor(session)
+    give_full_research(session, investor)
+    add_evidence(
+        session,
+        investor,
+        area=EvidenceArea.RECENT_ACTIVITY,
+        kind=EvidenceKind.BLOG_POST,
+        title="fund news",
+        text="Raised $500M for Fund VII. Participated in Greenphire's $700M round.",
+    )
+
+    target = score_investor(session, campaign=campaign, investor=investor, profile=profile)
+
+    assert "Greenphire" in target.conflict_companies
+    assert target.status is TargetStatus.SUPPRESSED_CONFLICT
+
+
+def test_ordinary_prose_does_not_invent_a_conflict(session, campaign, profile, client):
+    """The flip side of the rule above: the scan is wider, so it must stay case-sensitive.
+
+    Competitor names are frequently ordinary words. A lowercase 'wonder' in a blog post is
+    English, not a cap table, and suppressing on it would silently delete a good investor.
+    """
+    investor = make_investor(session)
+    give_full_research(session, investor)
+    add_evidence(
+        session,
+        investor,
+        area=EvidenceArea.RECENT_ACTIVITY,
+        kind=EvidenceKind.BLOG_POST,
+        title="fund news",
+        text="We often wonder whether greenphire-style billing will ever be fixed.",
+    )
+
+    target = score_investor(session, campaign=campaign, investor=investor, profile=profile)
+
+    assert target.conflict_companies == []
+    assert target.status is not TargetStatus.SUPPRESSED_CONFLICT
 
 
 def test_the_campaign_cap_cannot_be_raised(session, campaign, profile, client):

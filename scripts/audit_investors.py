@@ -25,9 +25,16 @@ from data.investor_audit_2026 import (  # noqa: E402
 )
 from data.investor_universe_2026 import ALL_RECORDS, SEGMENT_LABELS  # noqa: E402
 from data.investor_universe_supplement import ALL_SUPPLEMENT, SUPPLEMENT_CONTACTS  # noqa: E402
+from data.outreach_round3 import (  # noqa: E402
+    ALL_ROUND3,
+    COMPARABLE_CAP_TABLE,
+    MANDATE_EXCLUSIONS,
+    MERGE_AS_DUPLICATE,
+    ROUND3_CONTACTS,
+)
 
 #: Every contact re-verified or newly sourced against a public page.
-VERIFIED_CONTACTS = {**CONFIRMED_CONTACTS, **SUPPLEMENT_CONTACTS}
+VERIFIED_CONTACTS = {**CONFIRMED_CONTACTS, **SUPPLEMENT_CONTACTS, **ROUND3_CONTACTS}
 
 SEED_TOKENS = ("pre-seed", "seed", "early stage")
 
@@ -95,13 +102,74 @@ def apply_audit(records: list[dict]) -> list[dict]:
     # named person, which is what R1.4 wants. The "contact one" flag below stops that from
     # turning into three emails to the same fund.
     out.extend(dict(a) for a in ALL_SUPPLEMENT)
+    out.extend(dict(a) for a in ALL_ROUND3)
+    for record in out:
+        record["firm"] = MERGE_AS_DUPLICATE.get(record["firm"], record["firm"])
+    out = _fold_partnerless(out)
+    _attach_cap_table(out)
     return out
+
+
+def _fold_partnerless(records: list[dict]) -> list[dict]:
+    """Once a firm has a named partner, its partnerless row is dead weight.
+
+    The universe carried a lot of firms with no contact. Ingest quarantines those as
+    ``needs_partner_resolution``, which is correct — you cannot email a firm. But when a
+    later pass finds the partner, keeping both rows leaves the firm listed twice: once
+    emailable, once quarantined. So the partnerless row is folded into the named one,
+    donating any field the named record is missing. The placeholder often holds the better
+    portfolio history, which is exactly the evidence R1.3 demands.
+    """
+    by_firm: dict[str, list[dict]] = {}
+    for record in records:
+        by_firm.setdefault(record["firm"], []).append(record)
+
+    folded: list[dict] = []
+    for firm, rows in by_firm.items():
+        named = [r for r in rows if r.get("partner_name")]
+        if not firm or not named:
+            folded.extend(rows)
+            continue
+        donor: dict = {}
+        for row in rows:
+            if row.get("partner_name"):
+                continue
+            for key, value in row.items():
+                if value and not donor.get(key):
+                    donor[key] = value
+        for row in named:
+            for key, value in donor.items():
+                if key in ("firm", "partner_name", "partner_role"):
+                    continue
+                if not row.get(key):
+                    row[key] = value
+        folded.extend(named)
+    return folded
+
+
+def _attach_cap_table(records: list[dict]) -> None:
+    """Record that a firm already funded a comparable company.
+
+    A fund that has written a cheque to CookUnity or Local Kitchens does not need to be
+    convinced the category is real, and saying so is the rare opening line that is both
+    specific and checkable.
+    """
+    for record in records:
+        fact = COMPARABLE_CAP_TABLE.get(record["firm"])
+        if not fact:
+            continue
+        existing = record.get("recent_activity") or ""
+        if fact not in existing:
+            record["recent_activity"] = f"{existing} {fact}".strip()
 
 
 def grade(record: dict) -> tuple[str, list[str]]:
     """Return (tier, reasons). Tier C means: do not spend a send on this."""
     reasons: list[str] = []
 
+    if record["firm"] in MANDATE_EXCLUSIONS:
+        reasons.append(MANDATE_EXCLUSIONS[record["firm"]])
+        return "C", reasons
     if not seed_capable(record):
         reasons.append("cannot write a seed cheque (growth/buyout mandate)")
         return "C", reasons
@@ -113,6 +181,14 @@ def grade(record: dict) -> tuple[str, list[str]]:
     if klass == "off":
         reasons.append("no consumer or food signal in the stated focus")
         return "C", reasons
+
+    # A fund that has already written a cheque to a comparable company has proven its
+    # appetite for this exact model. That outranks a sector-keyword match: Fuel Venture
+    # Capital reads as a Miami generalist by its stated sectors, but it led CookUnity's
+    # Series A, which is a closer precedent than most self-described food funds can claim.
+    if record["firm"] in COMPARABLE_CAP_TABLE:
+        reasons.append("has funded a comparable company — see recent activity")
+        return "A", reasons
 
     if record.get("segment") == "accelerator":
         reasons.append("accelerator — apply through their programme, do not cold email")
